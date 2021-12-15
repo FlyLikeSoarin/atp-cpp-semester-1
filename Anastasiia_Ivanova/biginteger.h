@@ -2,18 +2,124 @@
 #include <vector>
 #include <string>
 #include <sstream>
-
-std::pair<int, int> getPowerOfTen(int numberBlock) {
-  int k = 1;
-  int number = 10;
-  while (number < numberBlock) {
-    ++k;
-    number *= 10;
-  }
-  return {k, number};
-}
-
 class BigInteger {
+ public:
+  friend class Rational;
+  friend std::istream& operator>>(std::istream& in, BigInteger& integer);
+  friend std::ostream& operator<<(std::ostream& out, const BigInteger& integer);
+  friend bool operator<(const BigInteger& first, const BigInteger& second);
+  explicit BigInteger() : integer(1, 0), sign(1) {}
+  BigInteger(int numb) : integer(0), sign(1) {
+    if (numb < 0) {
+      sign = -1;
+      numb = -numb;
+    }
+    do {
+      integer.push_back(numb % base);
+      numb /= base;
+    } while (numb != 0);
+  }
+  BigInteger& operator+=(const BigInteger& anotherInteger) {
+    (getSign() == anotherInteger.getSign()) ? addDigits(anotherInteger) : subtractNumber(anotherInteger);
+    return *this;
+  }
+  BigInteger& operator-=(const BigInteger& anotherInteger) {
+    (getSign() == anotherInteger.getSign()) ? subtractNumber(anotherInteger) : addDigits(anotherInteger);
+    return *this;
+  }
+  BigInteger& operator*=(const BigInteger& anotherInteger) {
+    sign *= anotherInteger.getSign();
+    if (integer.empty()) {
+      return *this;
+    }
+    std::vector<int> newInteger(integer.size() + anotherInteger.size() + 2, 0);
+    for (size_t i = 0; i < anotherInteger.size(); ++i) {
+      long long debt = 0;
+      for (size_t j = 0; j < integer.size(); ++j) {
+        debt += static_cast<long long>(integer[j]) * anotherInteger[i] + newInteger[i + j];
+        newInteger[i + j] = static_cast<int>(debt % base);
+        debt /= base;
+      }
+      if (debt != 0) {
+        newInteger[i + integer.size()] = static_cast<int>(debt);
+      }
+    }
+    integer = newInteger;
+    clearNotSignificant();
+    return *this;
+  }
+  BigInteger& operator/=(const BigInteger& anotherInteger) {
+    std::vector<int> newInteger(1, 0);
+    remainderAndDivision(anotherInteger, newInteger);
+    integer = newInteger;
+    sign *= anotherInteger.getSign();
+    return *this;
+  }
+  BigInteger& operator%=(const BigInteger& anotherInteger) {
+    std::vector<int> newInteger(0);
+    remainderAndDivision(anotherInteger, newInteger);
+    return *this;
+  }
+  BigInteger& operator++() {
+    if (isZero()) {
+      sign = 1;
+      integer[0] = 1;
+      return *this;
+    }
+    int debt = ((getSign() == 1) ? 1 : -1);
+    pushDebt(integer, debt, 0, base);
+    return *this;
+  }
+  BigInteger& operator--() {
+    if (isZero()) {
+      sign = -1;
+      integer[0] = 1;
+    } else {
+      int debt = (getSign() == -1) ? 1 : -1;
+      pushDebt(integer, debt, 0, base);
+    }
+    return *this;
+  }
+  BigInteger operator++(int) {
+    BigInteger copyInteger(*this);
+    ++(*this);
+    return (copyInteger);
+  }
+  BigInteger operator--(int) {
+    BigInteger copyInteger(*this);
+    --(*this);
+    return (copyInteger);
+  }
+  BigInteger operator-() {
+    BigInteger copyInteger(*this);
+    copyInteger.sign *= -1;
+    return copyInteger;
+  }
+  explicit operator bool() const {
+    return !isZero();
+  }
+  [[nodiscard]] std::string toString() const {
+    if (integer.empty() || isZero()) {
+      return "0";
+    }
+    std::stringstream answerStream;
+    if (getSign() == -1) {
+      answerStream << '-';
+    }
+    for (size_t i = integer.size(); i > 0; --i) {
+      if (i != integer.size()) {
+        for (int k = base / 10; k > integer[i - 1]; k /= 10) {
+          answerStream << 0;
+        }
+      }
+      if (integer[i - 1] != 0) {
+        answerStream << integer[i - 1];
+      }
+    }
+    std::string ans = answerStream.str();
+    return answerStream.str();
+  }
+
  private:
   std::vector<int> integer;
   int sign;
@@ -154,146 +260,6 @@ class BigInteger {
   [[nodiscard]] size_t size() const {
     return integer.size();
   }
- public:
-  friend std::istream& operator>>(std::istream& in, BigInteger& integer);
-  friend std::ostream& operator<<(std::ostream& out, const BigInteger& integer);
-  friend bool operator<(const BigInteger& first, const BigInteger& second);
-  explicit BigInteger() : integer(1, 0), sign(1) {}
-  BigInteger(int numb) : integer(0), sign(1) {
-    if (numb < 0) {
-      sign = -1;
-      numb = -numb;
-    }
-    do {
-      integer.push_back(numb % base);
-      numb /= base;
-    } while (numb != 0);
-  }
-  BigInteger(const BigInteger& anotherInteger) = default;
-  BigInteger(const std::vector<int>& anotherInteger, int sign, size_t indexDelta = 0, int numberDelta = 1) :
-      integer(anotherInteger.size() + indexDelta, 0), sign(sign) {
-    int debt = 0;
-    for (size_t i = indexDelta; i < integer.size(); ++i) {
-      debt += (anotherInteger[i - indexDelta] % (base / numberDelta)) * numberDelta;
-      integer[i] = debt % base;
-      debt /= base;
-      debt += anotherInteger[i - indexDelta] / (base / numberDelta);
-    }
-    while (debt != 0) {
-      integer.push_back(debt % base);
-      debt /= base;
-    }
-    clearNotSignificant();
-  }
-  BigInteger& operator+=(const BigInteger& anotherInteger) {
-    (getSign() == anotherInteger.getSign()) ? addDigits(anotherInteger) : subtractNumber(anotherInteger);
-    return *this;
-  }
-  BigInteger& operator-=(const BigInteger& anotherInteger) {
-    (getSign() == anotherInteger.getSign()) ? subtractNumber(anotherInteger) : addDigits(anotherInteger);
-    return *this;
-  }
-  BigInteger& operator*=(const BigInteger& anotherInteger) {
-    sign *= anotherInteger.getSign();
-    if (integer.empty()) {
-      return *this;
-    }
-    std::vector<int> newInteger(integer.size() + anotherInteger.size() + 2, 0);
-    for (size_t i = 0; i < anotherInteger.size(); ++i) {
-      long long debt = 0;
-      for (size_t j = 0; j < integer.size(); ++j) {
-        debt += static_cast<long long>(integer[j]) * anotherInteger[i] + newInteger[i + j];
-        newInteger[i + j] = static_cast<int>(debt % base);
-        debt /= base;
-      }
-      if (debt != 0) {
-        newInteger[i + integer.size()] = static_cast<int>(debt);
-      }
-    }
-    integer = newInteger;
-    clearNotSignificant();
-    return *this;
-  }
-  BigInteger& operator/=(const BigInteger& anotherInteger) {
-    std::vector<int> newInteger(1, 0);
-    remainderAndDivision(anotherInteger, newInteger);
-    integer = newInteger;
-    sign *= anotherInteger.getSign();
-    return *this;
-  }
-  std::vector<int> divideWithRemainder(const BigInteger& anotherInteger) {
-    std::vector<int> newInteger(1, 0);
-    remainderAndDivision(anotherInteger, newInteger);
-    std::swap(integer, newInteger);
-    return newInteger;
-  }
-  BigInteger& operator%=(const BigInteger& anotherInteger) {
-    std::vector<int> newInteger(0);
-    remainderAndDivision(anotherInteger, newInteger);
-    return *this;
-  }
-  BigInteger& operator++() {
-    if (isZero()) {
-      sign = 1;
-      integer[0] = 1;
-      return *this;
-    }
-    int debt = ((getSign() == 1) ? 1 : -1);
-    pushDebt(integer, debt, 0, base);
-    return *this;
-  }
-  BigInteger& operator--() {
-    if (isZero()) {
-      sign = -1;
-      integer[0] = 1;
-    } else {
-      int debt = (getSign() == -1) ? 1 : -1;
-      pushDebt(integer, debt, 0, base);
-    }
-    return *this;
-  }
-  BigInteger operator++(int) {
-    BigInteger copyInteger(*this);
-    ++(*this);
-    return (copyInteger);
-  }
-  BigInteger operator--(int) {
-    BigInteger copyInteger(*this);
-    --(*this);
-    return (copyInteger);
-  }
-  BigInteger operator-() {
-    BigInteger copyInteger(*this);
-    copyInteger.sign *= -1;
-    return copyInteger;
-  }
-  explicit operator bool() const {
-    return !isZero();
-  }
-  [[nodiscard]] std::string toString() const {
-    if (integer.empty()) {
-      return "0";
-    }
-    if (isZero()) {
-      return "0";
-    }
-    std::stringstream answerStream;
-    if (getSign() == -1) {
-      answerStream << '-';
-    }
-    for (size_t i = integer.size(); i > 0; --i) {
-      if (i != integer.size()) {
-        for (int k = base / 10; k > integer[i - 1]; k /= 10) {
-          answerStream << 0;
-        }
-      }
-      if (integer[i - 1] != 0) {
-        answerStream << integer[i - 1];
-      }
-    }
-    std::string ans = answerStream.str();
-    return answerStream.str();
-  }
   [[nodiscard]] bool isZero() const {
     return (integer.size() == 1 && integer[0] == 0);
   }
@@ -303,16 +269,8 @@ class BigInteger {
   void changeSign() {
     sign *= -1;
   }
-  const std::vector<int>& asVector() {
-    return integer;
-  }
-  [[nodiscard]] int getBase() const {
-    return base;
-  }
-  [[nodiscard]] int getAmountInBlock() const {
-    return amountInBlock;
-  }
 };
+
 
 BigInteger operator+(const BigInteger& first, const BigInteger& second) {
   BigInteger copyInteger(first);
@@ -379,72 +337,35 @@ std::istream& operator>>(std::istream& in, BigInteger& bigInteger) {
     ++numberStart;
     bigInteger.sign = -1;
   }
-  size_t delta = (stringInteger.size() - numberStart) % bigInteger.getAmountInBlock();
-  size_t currentIndex = (stringInteger.size() - numberStart) / bigInteger.getAmountInBlock() + (delta != 0 ? 1 : 0);
+  size_t delta = (stringInteger.size() - numberStart) % bigInteger.amountInBlock;
+  size_t currentIndex = (stringInteger.size() - numberStart) / bigInteger.amountInBlock + (delta != 0 ? 1 : 0);
   bigInteger.integer.resize(currentIndex);
   if (delta != 0) {
     bigInteger.integer[currentIndex - 1] = std::stoi(stringInteger.substr(numberStart, delta));
     numberStart += delta;
     --currentIndex;
   }
-  delta = bigInteger.getAmountInBlock();
+  delta = bigInteger.amountInBlock;
   for (; currentIndex > 0; --currentIndex) {
     bigInteger.integer[currentIndex - 1] = std::stoi(stringInteger.substr(numberStart, delta));
     numberStart += delta;
   }
+  if (bigInteger.isZero()){
+    bigInteger.sign = 1;
+  }
   return in;
 }
 
+
 class Rational {
- private:
-  BigInteger numerator;
-  BigInteger denominator;
-  int sign;
-  static BigInteger CountGcd(const BigInteger& first, const BigInteger& second) {
-    BigInteger firstCopy = first;
-    BigInteger secondCopy = second;
-    while (true) {
-      firstCopy %= secondCopy;
-      if (firstCopy.isZero()) {
-        return secondCopy;
-      }
-      secondCopy %= firstCopy;
-      if (secondCopy.isZero()) {
-        return firstCopy;
-      }
-    }
-  }
-  void ReduceFraction() {
-    BigInteger gcd = CountGcd(numerator, denominator);
-    numerator /= gcd;
-    denominator /= gcd;
-  }
-  void Add(const Rational& anotherRational) {
-    if (this->numerator == anotherRational.numerator && this->denominator == anotherRational.denominator) {
-      this->numerator *= 2;
-    } else {
-      numerator *= anotherRational.denominator;
-      numerator += anotherRational.numerator * denominator;
-      denominator *= anotherRational.denominator;
-    }
-    ReduceFraction();
-  }
-  void Subtract(const Rational& anotherRational) {
-    if (this->numerator == anotherRational.numerator && this->denominator == anotherRational.denominator) {
-      this->numerator = 0;
-      this->denominator = 1;
-      return;
-    }
-    numerator *= anotherRational.denominator;
-    numerator -= anotherRational.numerator * denominator;
-    if (numerator.getSign() == -1) {
-      sign *= -1;
-      numerator.changeSign();
-    }
-    denominator *= anotherRational.denominator;
-    ReduceFraction();
-  }
  public:
+  friend std::istream& operator>>(std::istream& in, Rational& rational) {
+    BigInteger input;
+    in >> input;
+    rational = Rational(input);
+
+    return in;
+  }
   friend bool operator<(const Rational& first, const Rational& second);
   Rational() : numerator(0), denominator(1), sign(1) {}
   Rational(int intNumerator) : numerator(std::abs(intNumerator)), denominator(1), sign(intNumerator < 0 ? -1 : 1) {}
@@ -454,7 +375,6 @@ class Rational {
       numerator.changeSign();
     }
   }
-  Rational& operator=(const Rational& rational) = default;
   Rational& operator+=(const Rational& anotherRational) {
     (anotherRational.getSign() != getSign()) ? Subtract(anotherRational) : Add(anotherRational);
     return *this;
@@ -483,8 +403,7 @@ class Rational {
     }
     return *this;
   }
-
-  Rational operator-() {
+  Rational operator-() const{
     Rational copyRational(*this);
     copyRational.sign *= -1;
 
@@ -497,63 +416,176 @@ class Rational {
     }
     return answer;
   }
-  std::string asDecimal(size_t precision = 0) {
+  std::string asDecimal(size_t precision = 0){
+    std::string answer;
     BigInteger numeratorCopy = numerator;
-    std::vector<int> remainder = numeratorCopy.divideWithRemainder(denominator);
-    bool zeroInTail = (precision == 0);
-    std::string answer = numeratorCopy.toString();
-    if (precision > 0) {
-      const std::vector<int>& denominatorVector = denominator.asVector();
-      size_t indexDelta = denominatorVector.size() - remainder.size();
-      int lastInDenominator = denominatorVector[denominatorVector.size() - 1];
-      int lastInRemainder = remainder[remainder.size() - 1];
-      std::pair<int, int> amountInDenominator = getPowerOfTen(lastInDenominator);
-      std::pair<int, int> amountInRemainder = getPowerOfTen(lastInRemainder);
-      int difference = amountInDenominator.first - amountInRemainder.first;
-      if (lastInDenominator * amountInRemainder.second <= lastInRemainder * amountInDenominator.second) {
-        --difference;
-      }
-      if (difference < 0) {
-        --indexDelta;
-        difference += denominator.getAmountInBlock();
-      }
-      size_t countLeadingZeros = indexDelta * denominator.getAmountInBlock() + difference;
-      if (countLeadingZeros > precision) {
-        answer += std::string(precision, '0');
-        zeroInTail = true;
-      } else {
-        size_t amountDelta = precision + 1;
-        indexDelta += amountDelta / denominator.getAmountInBlock();
-        amountDelta %= denominator.getAmountInBlock();
-        int numberDelta = 1;
-        while (amountDelta > 0) {
-          numberDelta *= 10;
-          --amountDelta;
-        }
-        BigInteger rest(remainder, 1, indexDelta, static_cast<int>(numberDelta));
-        rest /= denominator;
-        if (rest.asVector()[0] % 10 >= 5) {
-          rest += 10;
-        }
-        answer += "." + std::string(countLeadingZeros, '0') + rest.toString().substr(0, precision - countLeadingZeros);
-      }
+    BigInteger remainder = numeratorCopy % denominator;
+    numeratorCopy /= denominator;
+    std::string signDecimal = (getSign() == -1 && (!numeratorCopy.isZero() || !remainder.isZero()))? "-" : "";
+    if (precision == 0){
+      answer = numeratorCopy.toString();
     }
-    if (!(zeroInTail && numeratorCopy.isZero()) && getSign() == -1) {
-      answer = "-" + answer;
+    else if (precision > 0){
+      size_t differenceInBlocks = denominator.integer.size() - remainder.size();
+      int  digitsAmountDenominator = GetPowerOfTen(denominator.integer[denominator.integer.size() - 1]);
+      int digitsAmountRemainder = GetPowerOfTen(remainder.integer[remainder.integer.size() - 1]);
+      int tenPowerRemainder = TenToPower(digitsAmountRemainder);
+      int tenPowerDenominator = TenToPower(digitsAmountDenominator);
+      if (digitsAmountDenominator < digitsAmountRemainder){
+        digitsAmountDenominator += denominator.amountInBlock;
+        --differenceInBlocks;
+        tenPowerDenominator *= denominator.base / tenPowerRemainder;
+      }
+      else{
+        tenPowerDenominator /= tenPowerRemainder;
+      }
+      MoveDigits(remainder, differenceInBlocks, tenPowerDenominator);
+      size_t countLeadingZeros = differenceInBlocks * denominator.amountInBlock + digitsAmountDenominator - digitsAmountRemainder - 1;
+      int numberToMultiply = 1;
+      if (denominator > remainder){
+        numberToMultiply *= 10;
+        ++countLeadingZeros;
+      }
+      if (precision < countLeadingZeros){
+        answer = signDecimal+ numeratorCopy.toString() +
+            "." + std::string(precision, '0');
+      }
+      else{
+        precision = precision + 1 - countLeadingZeros;
+        size_t blocksNumber = (precision) / remainder.amountInBlock;
+        int power = static_cast<int>((precision) % remainder.amountInBlock);
+        if (power + 1 == remainder.amountInBlock && numberToMultiply == 10){
+          numberToMultiply = 1;
+          ++blocksNumber;
+        }
+        else{
+          while (power != 0){
+            numberToMultiply *= 10;
+            --power;
+          }
+        }
+        MoveDigits(remainder, blocksNumber, numberToMultiply);
+        remainder /= denominator;
+        int firstBeforeRounding = remainder.integer[remainder.integer.size() - 1];
+        size_t blocksBeforeRounding = remainder.integer.size();
+        if (remainder[0] >= 5){
+          remainder += 10;
+        }
+        if (remainder.size() != blocksBeforeRounding ||
+            GetPowerOfTen(firstBeforeRounding) < GetPowerOfTen(
+                remainder.integer[remainder.integer.size() - 1])) {
+          if (countLeadingZeros != 0){
+            ++precision;
+            --countLeadingZeros;
+          }
+          else{
+            numeratorCopy += 1;
+          }
+        }
+
+        answer = signDecimal +
+            numeratorCopy.toString() + "." + std::string(countLeadingZeros, '0');
+        if (precision != 0){
+          answer += remainder.toString().substr(0, precision - 1);
+        }
+      }
     }
     return answer;
   }
   explicit operator double() {
-    std::istringstream decimal(asDecimal(100));
-    double answer;
-    decimal >> answer;
-    return answer;
+    return std::stod(asDecimal(16));
   }
   [[nodiscard]] int getSign() const {
     if (sign == 1 || numerator.isZero()) {
       return 1;
     }
     return -1;
+  }
+
+ private:
+  BigInteger numerator;
+  BigInteger denominator;
+  int sign;
+  static BigInteger CountGcd(const BigInteger& first, const BigInteger& second) {
+    BigInteger firstCopy = first;
+    BigInteger secondCopy = second;
+    while (true) {
+      firstCopy %= secondCopy;
+      if (firstCopy.isZero()) {
+        return secondCopy;
+      }
+      secondCopy %= firstCopy;
+      if (secondCopy.isZero()) {
+        return firstCopy;
+      }
+    }
+  }
+  void ReduceFraction() {
+    BigInteger gcd = CountGcd(numerator, denominator);
+    numerator /= gcd;
+    denominator /= gcd;
+  }
+  void Add(const Rational& anotherRational) {
+    if (this->numerator == anotherRational.numerator && this->denominator == anotherRational.denominator) {
+      this->numerator *= 2;
+    } else {
+      if (numerator.isZero()){
+        sign = 1;
+      }
+      numerator *= anotherRational.denominator;
+      numerator += anotherRational.numerator * denominator;
+      denominator *= anotherRational.denominator;
+    }
+    ReduceFraction();
+  }
+  void Subtract(const Rational& anotherRational) {
+    if (this->numerator == anotherRational.numerator && this->denominator == anotherRational.denominator) {
+      this->numerator = 0;
+      this->denominator = 1;
+      return;
+    }
+    if (numerator.isZero()){
+      sign = 1;
+    }
+    numerator *= anotherRational.denominator;
+    numerator -= anotherRational.numerator * denominator;
+    if (numerator.getSign() == -1) {
+      sign *= -1;
+      numerator.changeSign();
+    }
+    denominator *= anotherRational.denominator;
+    ReduceFraction();
+  }
+  static void MoveDigits(BigInteger& bigInteger, size_t blocksNumber, int numberToMultiply){
+    std::vector<int> newInteger(blocksNumber + bigInteger.integer.size(), 0);
+    int debt = 0;
+    for (size_t i = 0; i < bigInteger.integer.size(); ++i){
+      debt += (bigInteger.integer[i] % (bigInteger.base / numberToMultiply)) * numberToMultiply;
+      newInteger[i + blocksNumber] = debt % bigInteger.base;
+      debt /= bigInteger.base ;
+      debt += bigInteger.integer[i] / (bigInteger.base / numberToMultiply);
+    }
+    if (debt != 0){
+      newInteger.push_back(debt);
+    }
+    bigInteger.integer = newInteger;
+  }
+  static int TenToPower(int power){
+    int number = 1;
+    while (power != 0){
+      number *= 10;
+      --power;
+    }
+    return number;
+  }
+  static int GetPowerOfTen(int numberBlock) {
+    int k = 1;
+    int number = 10;
+    while (number <= numberBlock) {
+      ++k;
+      number *= 10;
+    }
+    return k;
   }
 };
 
@@ -587,7 +619,6 @@ bool operator<(const Rational& first, const Rational& second) {
   if (first.getSign() == -1) {
     return (first.numerator * second.denominator > first.denominator * second.numerator);
   }
-
   return (first.numerator * second.denominator < first.denominator * second.numerator);
 }
 bool operator==(const Rational& first, const Rational& second) {
@@ -606,3 +637,5 @@ bool operator>=(const Rational& first, const Rational& second) {
 bool operator!=(const Rational& first, const Rational& second) {
   return !(first == second);
 }
+
+
