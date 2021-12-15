@@ -638,4 +638,3 @@ bool operator!=(const Rational& first, const Rational& second) {
   return !(first == second);
 }
 
-
