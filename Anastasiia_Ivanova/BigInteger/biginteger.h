@@ -99,7 +99,7 @@ class BigInteger {
     return !isZero();
   }
   [[nodiscard]] std::string toString() const {
-    if (integer.empty() || isZero()) {
+    if (isZero()) {
       return "0";
     }
     std::stringstream answerStream;
@@ -129,18 +129,12 @@ class BigInteger {
     const int more = 1;
     const int equal = 0;
     const int less = -1;
-    if (integer.size() < anotherInteger.size()) {
-      return less;
-    }
-    if (integer.size() > anotherInteger.size()) {
-      return more;
+    if (integer.size() != anotherInteger.size()){
+      return (integer.size() < anotherInteger.size())? less : more;
     }
     for (size_t i = integer.size(); i > 0; --i) {
-      if (integer[i - 1] < anotherInteger[i - 1]) {
-        return less;
-      }
-      if (integer[i - 1] > anotherInteger[i - 1]) {
-        return more;
+      if (integer[i - 1] != anotherInteger[i - 1]){
+        return (integer[i - 1] < anotherInteger[i - 1])? less : more;
       }
     }
     return equal;
@@ -261,7 +255,7 @@ class BigInteger {
     return integer.size();
   }
   [[nodiscard]] bool isZero() const {
-    return (integer.size() == 1 && integer[0] == 0);
+    return (integer.size() <= 1 && integer[0] == 0);
   }
   [[nodiscard]] int getSign() const {
     return (isZero()) ? 1 : sign;
@@ -298,7 +292,7 @@ BigInteger operator%(const BigInteger& first, const BigInteger& second) {
   return copyInteger;
 }
 bool operator<(const BigInteger& first, const BigInteger& second) {
-  if (first.size() == 1 && first.integer[0] == 0 && second.size() == 1 && second[0] == 0) {
+  if (first.isZero() && second.isZero()) {
     return false;
   }
   if (first.getSign() < second.getSign()) {
@@ -376,18 +370,18 @@ class Rational {
     }
   }
   Rational& operator+=(const Rational& anotherRational) {
-    (anotherRational.getSign() != getSign()) ? Subtract(anotherRational) : Add(anotherRational);
+    (anotherRational.getSign() != getSign()) ? subtract(anotherRational) : add(anotherRational);
     return *this;
   }
   Rational& operator-=(const Rational& anotherRational) {
-    (anotherRational.getSign() == getSign()) ? Subtract(anotherRational) : Add(anotherRational);
+    (anotherRational.getSign() == getSign()) ? subtract(anotherRational) : add(anotherRational);
     return *this;
   }
   Rational& operator*=(const Rational& anotherRational) {
     sign *= anotherRational.getSign();
     numerator *= anotherRational.numerator;
     denominator *= anotherRational.denominator;
-    ReduceFraction();
+    reduceFraction();
     return *this;
   }
   Rational& operator/=(const Rational& anotherRational) {
@@ -399,7 +393,7 @@ class Rational {
       sign *= anotherRational.getSign();
       numerator *= anotherRational.denominator;
       denominator *= anotherRational.numerator;
-      ReduceFraction();
+      reduceFraction();
     }
     return *this;
   }
@@ -427,10 +421,10 @@ class Rational {
     }
     else if (precision > 0){
       size_t differenceInBlocks = denominator.integer.size() - remainder.size();
-      int  digitsAmountDenominator = GetPowerOfTen(denominator.integer[denominator.integer.size() - 1]);
-      int digitsAmountRemainder = GetPowerOfTen(remainder.integer[remainder.integer.size() - 1]);
-      int tenPowerRemainder = TenToPower(digitsAmountRemainder);
-      int tenPowerDenominator = TenToPower(digitsAmountDenominator);
+      int  digitsAmountDenominator = getPowerOfTen(denominator.integer[denominator.integer.size() - 1]);
+      int digitsAmountRemainder = getPowerOfTen(remainder.integer[remainder.integer.size() - 1]);
+      int tenPowerRemainder = tenToPower(digitsAmountRemainder);
+      int tenPowerDenominator = tenToPower(digitsAmountDenominator);
       if (digitsAmountDenominator < digitsAmountRemainder){
         digitsAmountDenominator += denominator.amountInBlock;
         --differenceInBlocks;
@@ -439,7 +433,7 @@ class Rational {
       else{
         tenPowerDenominator /= tenPowerRemainder;
       }
-      MoveDigits(remainder, differenceInBlocks, tenPowerDenominator);
+      moveDigits(remainder, differenceInBlocks, tenPowerDenominator);
       size_t countLeadingZeros = differenceInBlocks * denominator.amountInBlock + digitsAmountDenominator - digitsAmountRemainder - 1;
       int numberToMultiply = 1;
       if (denominator > remainder){
@@ -464,7 +458,7 @@ class Rational {
             --power;
           }
         }
-        MoveDigits(remainder, blocksNumber, numberToMultiply);
+        moveDigits(remainder, blocksNumber, numberToMultiply);
         remainder /= denominator;
         int firstBeforeRounding = remainder.integer[remainder.integer.size() - 1];
         size_t blocksBeforeRounding = remainder.integer.size();
@@ -472,7 +466,7 @@ class Rational {
           remainder += 10;
         }
         if (remainder.size() != blocksBeforeRounding ||
-            GetPowerOfTen(firstBeforeRounding) < GetPowerOfTen(
+            getPowerOfTen(firstBeforeRounding) < getPowerOfTen(
                 remainder.integer[remainder.integer.size() - 1])) {
           if (countLeadingZeros != 0){
             ++precision;
@@ -506,7 +500,7 @@ class Rational {
   BigInteger numerator;
   BigInteger denominator;
   int sign;
-  static BigInteger CountGcd(const BigInteger& first, const BigInteger& second) {
+  static BigInteger countGcd(const BigInteger& first, const BigInteger& second) {
     BigInteger firstCopy = first;
     BigInteger secondCopy = second;
     while (true) {
@@ -520,14 +514,14 @@ class Rational {
       }
     }
   }
-  void ReduceFraction() {
-    BigInteger gcd = CountGcd(numerator, denominator);
+  void reduceFraction() {
+    BigInteger gcd = countGcd(numerator, denominator);
     numerator /= gcd;
     denominator /= gcd;
   }
-  void Add(const Rational& anotherRational) {
-    if (this->numerator == anotherRational.numerator && this->denominator == anotherRational.denominator) {
-      this->numerator *= 2;
+  void add(const Rational& anotherRational) {
+    if (this->denominator == anotherRational.denominator) {
+      this->numerator += anotherRational.numerator;
     } else {
       if (numerator.isZero()){
         sign = 1;
@@ -536,9 +530,9 @@ class Rational {
       numerator += anotherRational.numerator * denominator;
       denominator *= anotherRational.denominator;
     }
-    ReduceFraction();
+    reduceFraction();
   }
-  void Subtract(const Rational& anotherRational) {
+  void subtract(const Rational& anotherRational) {
     if (this->numerator == anotherRational.numerator && this->denominator == anotherRational.denominator) {
       this->numerator = 0;
       this->denominator = 1;
@@ -554,9 +548,9 @@ class Rational {
       numerator.changeSign();
     }
     denominator *= anotherRational.denominator;
-    ReduceFraction();
+    reduceFraction();
   }
-  static void MoveDigits(BigInteger& bigInteger, size_t blocksNumber, int numberToMultiply){
+  static void moveDigits(BigInteger& bigInteger, size_t blocksNumber, int numberToMultiply){
     std::vector<int> newInteger(blocksNumber + bigInteger.integer.size(), 0);
     int debt = 0;
     for (size_t i = 0; i < bigInteger.integer.size(); ++i){
@@ -570,7 +564,7 @@ class Rational {
     }
     bigInteger.integer = newInteger;
   }
-  static int TenToPower(int power){
+  static int tenToPower(int power){
     int number = 1;
     while (power != 0){
       number *= 10;
@@ -578,7 +572,7 @@ class Rational {
     }
     return number;
   }
-  static int GetPowerOfTen(int numberBlock) {
+  static int getPowerOfTen(int numberBlock) {
     int k = 1;
     int number = 10;
     while (number <= numberBlock) {
@@ -637,4 +631,5 @@ bool operator>=(const Rational& first, const Rational& second) {
 bool operator!=(const Rational& first, const Rational& second) {
   return !(first == second);
 }
+
 
