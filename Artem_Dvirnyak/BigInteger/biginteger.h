@@ -33,7 +33,7 @@ public:
     [[nodiscard]] string toString() const;
 private:
     static const long long base_ = 1e7;
-    vector<long long> digits_;//числа в обратном порядке для упрощения операций
+    vector<long long> digits_; //числа в обратном порядке для упрощения операций
     int sign_ = 1;
 
     void normalize(bool full = true);
@@ -54,7 +54,7 @@ BigInteger operator %(const BigInteger& first, const BigInteger& second);
 std::ostream& operator << (std::ostream& out, const BigInteger& number);
 
 BigInteger::BigInteger(long long number) {
-    sign_ = 2 * static_cast<int>(number >= 0) - 1;
+    sign_ = (number >= 0) ? 1 : - 1;
     if (number == 0) {
         digits_.resize(1);
     }
@@ -74,11 +74,11 @@ bool operator >(const BigInteger& first, const BigInteger& second) {
         return (first.sign_ == 1);
     }
     if (first.digits_.size() != second.digits_.size()) {
-        return (first.digits_.size() > second.digits_.size()) && (first.sign_ == 1);
+        return !((first.digits_.size() > second.digits_.size()) xor (first.sign_ == 1));
     }
     for (int i = first.digits_.size()-1; i >= 0; --i) {
         if (first.digits_[i] != second.digits_[i]) {
-            return (first.digits_[i] > second.digits_[i]) && (first.sign_ == 1);
+            return !((first.digits_[i] > second.digits_[i]) xor (first.sign_ == 1));
         }
     }
     return false;
@@ -97,7 +97,7 @@ bool operator >=(const BigInteger& first, const BigInteger& second) {
 }
 
 bool operator <(const BigInteger& first, const BigInteger& second) {
-    return !(first > second) && (first != second);
+    return second > first;
 }
 
 bool operator <=(const BigInteger& first, const BigInteger& second) {
@@ -138,7 +138,7 @@ BigInteger BigInteger::operator -() const {
 
 BigInteger& BigInteger::operator +=(const BigInteger& number) {
     size_t i = 0;
-    int sign = static_cast<int>(sign_ == number.sign_) * 2 - 1;
+    int sign = (sign_ == number.sign_) ? 1 : - 1;
     for ( ; i < std::min(digits_.size(), number.digits_.size()); ++i) {
         digits_[i] += sign * number.digits_[i];
     }
@@ -159,7 +159,7 @@ BigInteger& BigInteger::operator -=(const BigInteger& number) {
 BigInteger& BigInteger::operator *=(const BigInteger& number) {
     BigInteger result;
     result.digits_.resize(digits_.size() + number.digits_.size());
-    result.sign_ = static_cast<int>(sign_ == number.sign_) * 2 - 1;
+    result.sign_ = (sign_ == number.sign_) ? 1 : - 1;
     long long rank = 0;
     size_t offset = 0;
     for (size_t i = 0; i < number.digits_.size(); ++i, ++offset) {
@@ -208,7 +208,7 @@ BigInteger& BigInteger::operator /=(const BigInteger& number) {
         result += left;
         temp -= number * (number.sign_ * left);
     }
-    result.sign_ = static_cast<int>(sign_ == number.sign_) * 2 - 1;
+    result.sign_ = (sign_ == number.sign_) ? 1 : - 1;
     *this = result;
     return *this;
 }
@@ -378,21 +378,18 @@ Rational::Rational(int number) : p_(BigInteger(number)), q_(1), sign_(1) {
     sign_ = ((p_ >= 0) xor (q_ > 0)) ? -1 : 1;
     p_ *= (p_ < 0) ? -1 : 1;
     q_ *= (q_ < 0) ? -1 : 1;
-    //reduce();
 }
 
 Rational::Rational(const BigInteger& number) : p_(number), q_(1) {
     sign_ = ((p_ >= 0) xor (q_ > 0)) ? -1 : 1;
     p_ *= (p_ < 0) ? -1 : 1;
     q_ *= (q_ < 0) ? -1 : 1;
-    //reduce();
 }
 
 Rational::Rational(const BigInteger& p, const BigInteger& q) : p_(p), q_(q) {
     sign_ = ((p_ >= 0) xor (q_ > 0)) ? -1 : 1;
     p_ *= (p_ < 0) ? -1 : 1;
     q_ *= (q_ < 0) ? -1 : 1;
-    //reduce();
 }
 
 Rational::operator double() const {
@@ -403,7 +400,7 @@ bool operator >(const Rational& first, const Rational& second) {
     if (first.sign_ + second.sign_ == 0) { //only one is positive
         return (first.sign_ == 1);
     }
-    return (first.p_ * second.q_ > second.p_ * first.q_) && (first.sign_ == 1);
+    return !((first.p_ * second.q_ > second.p_ * first.q_) xor (first.sign_ == 1));
 }
 
 bool operator ==(const Rational& first, const Rational& second) {
@@ -419,7 +416,7 @@ bool operator >=(const Rational& first, const Rational& second) {
 }
 
 bool operator <(const Rational& first, const Rational& second) {
-    return !(first > second) && (first != second);
+    return second > first;
 }
 
 bool operator <=(const Rational& first, const Rational& second) {
@@ -433,7 +430,7 @@ Rational Rational::operator -() const {
 }
 
 Rational& Rational::operator +=(const Rational& number) {
-    int sign = static_cast<int>(sign_ == number.sign_) * 2 - 1;
+    int sign = (sign_ == number.sign_) ? 1 : - 1;
     if (sign == 1) {
         p_ = p_ * number.q_ + number.p_ * q_;
     } else {
@@ -443,7 +440,6 @@ Rational& Rational::operator +=(const Rational& number) {
     sign_ = ((p_ >= 0) xor (q_ > 0)) ? -1 : 1;
     p_ *= (p_ < 0) ? -1 : 1;
     q_ *= (q_ < 0) ? -1 : 1;
-    //reduce();
     return *this;
 }
 
@@ -452,16 +448,15 @@ Rational& Rational::operator -=(const Rational& number) {
 }
 
 Rational& Rational::operator *=(const Rational& number) {
-    sign_ = static_cast<int>(sign_ == number.sign_) * 2 - 1;
+    sign_ = (sign_ == number.sign_) ? 1 : - 1;
     p_ = p_ * number.p_;
     q_ = q_ * number.q_;
     sign_ = (p_ == 0) ? 1 : sign_;
-    //reduce();
     return *this;
 }
 
 Rational& Rational::operator /=(const Rational& number) {
-    sign_ = static_cast<int>(sign_ == number.sign_) * 2 - 1;
+    sign_ = (sign_ == number.sign_) ? 1 : - 1;
     return *this *= Rational(number.q_, number.p_);
 }
 
