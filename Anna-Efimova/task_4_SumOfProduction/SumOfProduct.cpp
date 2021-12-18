@@ -3,10 +3,7 @@
 long long result;
 
 int maximum(int a, int b) {
-	if (a > b)
-		return a;
-	else
-		return b;
+	return a > b ? a : b;
 }
 
 void get_sum(int index, long long arr_prod, bool* if_been_used, int argc, int** arr, int* arr_siz) {
