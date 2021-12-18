@@ -4,6 +4,12 @@ long long sum_of_products (int** &arrays, int argc, char* argv[],
                            int current_index, int current_array,
                            int occupied_indexes[]) {
     long long result = 0;
+    if (current_array == 0 && current_index == 0) {
+        for (int i = 1; i < atoi(argv[1]); ++i) {
+            result += sum_of_products(arrays, argc, argv, i,
+                                      0, occupied_indexes);
+        }
+    }
     occupied_indexes[current_array++] = current_index;
     if (current_array == argc-1) {
         result = 1;
@@ -28,12 +34,9 @@ long long sum_of_products (int** &arrays, int argc, char* argv[],
     return result;
 }
 long long sum_of_products(int** &arrays, int argc, char* argv[]) {
-    long long result = 0;
     int* occupied_indexes = new int[argc-1];
-    for (int i = 0; i < atoi(argv[1]); ++i) {
-        result += sum_of_products(arrays, argc, argv,i,
+    long long result = sum_of_products(arrays, argc, argv,0,
                                   0, occupied_indexes);
-    }
     delete[] occupied_indexes;
     return result;
 }
