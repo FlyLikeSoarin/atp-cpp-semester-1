@@ -8,17 +8,6 @@ using std::cout;
 using std::cin;
 
 class BigInteger {
-private:
-    const size_t COUNT = 9;
-    const size_t SIZE = 1e9; // 10^COUNT
-    bool is_positive_ = true;
-    vector<size_t> number_;
-    size_t size_ = 0;
-    size_t rank_ = 0;
-    
-    void swap(BigInteger&);
-    void fix_number();
-
 public:
     BigInteger() {}
     BigInteger(int);
@@ -30,9 +19,9 @@ public:
         is_positive_(is_positive), number_(number), size_(size), rank_(rank) {}
     explicit BigInteger(const string&);
   
-    operator int()const; // ВНИМАНИЕ! НЕЯВНОЕ ПРЕОБРАЗОВАНИЕ
-    operator bool()const { return rank_ || number_[0]; } // ВНИМАНИЕ! НЕЯВНОЕ ПРЕОБРАЗОВАНИЕ
-    string toString()const;
+    operator int() const; // ВНИМАНИЕ! НЕЯВНОЕ ПРЕОБРАЗОВАНИЕ
+    operator bool() const { return rank_ || number_[0]; } // ВНИМАНИЕ! НЕЯВНОЕ ПРЕОБРАЗОВАНИЕ
+    string toString() const;
 
     friend BigInteger abs(const BigInteger&);
     friend BigInteger min(const BigInteger&, const BigInteger&);
@@ -62,6 +51,18 @@ public:
 
     friend std::ostream& operator<<(std::ostream&, const BigInteger&);
     friend std::istream& operator>>(std::istream&, const BigInteger&);
+
+private:
+    const size_t COUNT = 9;
+    const size_t SIZE = 1e9; // 10^COUNT
+    bool is_positive_ = true;
+    vector<size_t> number_;
+    size_t size_ = 0;
+    size_t rank_ = 0;
+    
+    void swap(BigInteger&);
+    void fix_number();
+
 };
 
 BigInteger::BigInteger(int arg_number) : is_positive_(arg_number >= 0), number_(2), size_(2), rank_(0) {
@@ -75,8 +76,8 @@ BigInteger::BigInteger(int arg_number) : is_positive_(arg_number >= 0), number_(
         arg_number /= SIZE;
         if (arg_number != 0) {
             ++rank_;
-        }
-    } while (arg_number != 0);
+         }
+     } while (arg_number != 0);
 }
 
 BigInteger::BigInteger(const string& string_number) : size_(2), rank_(0) {
@@ -99,7 +100,7 @@ BigInteger::BigInteger(const string& string_number) : size_(2), rank_(0) {
     }
 }
 
-BigInteger::operator int()const {
+BigInteger::operator int() const {
     int result = 0;
     for (size_t current_rank = rank_ + 1; current_rank > 0; --current_rank) {
         result *= SIZE;
@@ -108,7 +109,7 @@ BigInteger::operator int()const {
     return result;
 }
 
-string BigInteger::toString()const {
+string BigInteger::toString() const {
     string result;
     if (!is_positive_) {
         result += '-';
@@ -462,12 +463,6 @@ BigInteger operator "" _bi(const char* string_number) {
 }
 
 class Rational{
-private:
-    BigInteger numerator_, denominator_; 
-    BigInteger GCD(BigInteger&, BigInteger&);
-    void swap(Rational&);
-    void fix_number();
-
 public:
     Rational() : numerator_(0), denominator_(1) {}
     Rational(const Rational& number) : 
@@ -475,10 +470,10 @@ public:
     Rational(int numerator) : numerator_(numerator), denominator_(1) {}
     Rational(const BigInteger& number) : numerator_(number), denominator_(1) {}
 
-    explicit operator double()const;
+    explicit operator double() const;
 
     string toString()const;
-    string asDecimal(size_t)const;
+    string asDecimal(size_t) const;
     
     Rational& operator=(const Rational&);
     Rational& operator+=(const Rational&);
@@ -489,6 +484,13 @@ public:
     friend Rational operator-(const Rational&);
     friend bool operator>(const Rational&, const Rational&);
     friend bool operator==(const Rational&, const Rational&);
+
+private:
+    BigInteger numerator_, denominator_; 
+    BigInteger GCD(BigInteger&, BigInteger&);
+    void swap(Rational&);
+    void fix_number();
+
 };
 
 BigInteger Rational::GCD(BigInteger& first_number, BigInteger& second_number) {
@@ -500,7 +502,7 @@ BigInteger Rational::GCD(BigInteger& first_number, BigInteger& second_number) {
     }
 }
 
-Rational::operator double()const {
+Rational::operator double() const {
     string result = (*this).asDecimal(16); // по факту, лишняя линяя. Но можно сделать, как в asDecimal
     return stod(result);
 }
@@ -522,7 +524,7 @@ void Rational::fix_number() {
     }
 }
 
-string Rational::toString()const {
+string Rational::toString() const {
    string result = numerator_.toString();
    if (denominator_ != BigInteger(1)) {
        result += '/' + denominator_.toString();
@@ -530,7 +532,7 @@ string Rational::toString()const {
    return result;
 }
 
-string Rational::asDecimal(size_t precision = 0)const {
+string Rational::asDecimal(size_t precision = 0) const {
    BigInteger quotient = numerator_ / denominator_;
    BigInteger remainder = abs(numerator_ - quotient * denominator_);
    string result;
