@@ -3,12 +3,8 @@
 
 
 class String {
- private:
-  size_t size = 1;
-  size_t capacity = 0;
-  char* str = new char[size];
  public:
-  void clear_memory() {
+  void clear_string() {
     if (size == 1) return;
     size >>= 1;
     char* tmp = new char[size];
@@ -65,6 +61,7 @@ class String {
       tmp[size - 1] = symbol;
       tmp[size] = '\0';
       delete[] str;
+      str = tmp;
       str = new char[size << 1];
       memcpy(str, tmp, size + 1);
       size <<= 1;
@@ -81,7 +78,7 @@ class String {
     --capacity;
     str[capacity - 1] = '\0';
     if (capacity == size / 4) {
-      clear_memory();
+      clear_string();
     }
   }
   char& front() {
@@ -170,9 +167,7 @@ class String {
       }
       return true;
     }
-    else {
-      return false;
-    }
+    return false;
   }
   String& operator= (const String& s) {
     if (this != &s) {
@@ -181,13 +176,16 @@ class String {
       str = new char[size];
       memcpy(str, s.str, s.capacity);
       capacity = s.capacity;
-      return *this;
     }
     return *this;
   };
   String operator+ (char symbol);
   friend std::ostream& operator << (std::ostream &out, const String& s);
   friend std::istream& operator >> (std::istream &in, String& s);
+ private:
+  size_t size = 1;
+  size_t capacity = 0;
+  char* str = new char[size];
 };
 
 std::ostream& operator << (std::ostream &out, const String& s) {
