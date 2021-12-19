@@ -10,9 +10,7 @@ class String {
     char* tmp = new char[size];
     memcpy(tmp, str, size);
     delete[] str;
-    str = new char[size];
-    memcpy(str, tmp, size);
-    delete[] tmp;
+    str = tmp;
   }
   String(const char* s) : size(1){
     while (size <= strlen(s)) {
@@ -60,12 +58,8 @@ class String {
       memcpy(tmp, str, size);
       tmp[size - 1] = symbol;
       tmp[size] = '\0';
-      delete[] str;
       str = tmp;
-      str = new char[size << 1];
-      memcpy(str, tmp, size + 1);
       size <<= 1;
-      delete[] tmp;
       ++capacity;
     }
     else {
@@ -149,11 +143,8 @@ class String {
     for (size_t i = capacity - 1; i < capacity + s.capacity - 1; ++i) {
       tmp[i] = s.str[i - capacity + 1];
     }
-    delete[] str;
-    str = new char[size];
+    str = tmp;
     capacity = strol;
-    memcpy(str, tmp, strol);
-    delete[] tmp;
     return *this;
   }
   String& operator+= (char symbol) {
