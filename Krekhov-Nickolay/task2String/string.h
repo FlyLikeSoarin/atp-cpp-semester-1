@@ -1,12 +1,7 @@
 #include <iostream>
 #include <cstring>
 class String {
- private:
-  char* str = nullptr;
-  size_t size = 0;
-  size_t bufferSize = 32;
-  void increaseSize();
-  void decreaseSize();
+
  public:
   size_t length() const;
   void push_back(char c);
@@ -17,76 +12,63 @@ class String {
   const char& front() const;
   bool empty() const;
   void clear();
-  size_t find(const String S) const {
 
-    for (size_t i = 0; i < size - S.size; ++i) {
-      int flag = 1;
-      for (size_t j = 0; j < S.size; ++j) {
-        if (str[i + j] != S.str[j]) {
-          flag = 0;
-          break;
-        }
-      }
-      if (flag == 1) {
-        return i;
-      }
-
-    }
-    return size;
+  size_t find(const String& string) const {
+    return findHelper(string, false);
   }
-
-  size_t rfind(const String S) const {
-    for (size_t i = size - S.size + 1; i >= 1; --i) {
-      int flag = 1;
-      for (size_t j = 0; j < S.size; ++j) {
-        if (str[i - 1 + j] != S.str[j]) {
-          flag = 0;
-          break;
-        }
-      }
-      if (flag == 1) {
-        return i - 1;
-      }
-    }
-    return size;
+  size_t rfind(const String& string) const {
+    return findHelper(string, true);
   }
 
   String substr(size_t start, size_t count) const {
-    String S;
-    S.size = count;
-    S.bufferSize = count * 2 + 3;
-    S.str = new char[bufferSize];
+    String string;
+    string.size = count;
+    string.bufferSize = count * 2 + 3;
+    string.str = new char[bufferSize];
     for (size_t i = 0; i < count; ++i) {
-      S.str[i] = str[i + start];
+      string.str[i] = str[i + start];
     }
-    return S;
+    return string;
   }
+
+  //------------------------------CONSTRUTORS && DESTRUCTOR----------------------------------------------------
 
   String() {
     str = new char[bufferSize];
   };
-  String(const size_t n, const char c) : size(n), bufferSize(2 * n) {
+
+  String(const size_t n, const char c) : size(n), bufferSize(n) {
     str = new char[bufferSize];
     memset(str, c, n);
   }
-  String(const String& S) : str(new char[S.bufferSize]), size(S.size), bufferSize(S.bufferSize) {
-    memcpy(str, S.str, S.size);
+
+  String(const String& string) : str(new char[string.bufferSize]), size(string.size), bufferSize(string.bufferSize) {
+    memcpy(str, string.str, string.size);
   }
 
-  String(const char *S) : size(strlen(S)), bufferSize(strlen(S) * 2) {
+  String(const char* string) : size(strlen(string)), bufferSize(strlen(string)) {
     str = new char[bufferSize];
     for (size_t i = 0; i < size; ++i) {
-      str[i] = S[i];
+      str[i] = string[i];
     }
   }
+
   String(const char c) : str(new char[2]), size(1), bufferSize(5) {
     str[0] = c;
   }
 
+  ~String() {
+    delete[] str;
+  }
+  //----------------------------------------------------------------------------------
+
+  //-------------------------OPERATORS---------------------------------------------
+
+
   String& operator+=(const String& other) {
     size_t len = size;
     size += other.size;
-    if (size > bufferSize) {
+    while (size > bufferSize) {
       increaseSize();
     }
     for (size_t i = len; i < size; ++i) {
@@ -96,25 +78,16 @@ class String {
   }
   bool operator==(const String& other) {
     if (size != other.size) return false;
-    else {
-      for (size_t i = 0; i < size; ++i) {
-        if (str[i] != other.str[i]) {
-          return false;
-        }
+    for (size_t i = 0; i < size; ++i) {
+      if (str[i] != other.str[i]) {
+        return false;
       }
-      return true;
     }
+    return true;
   }
-  ~String() {
-    delete[] str;
-  };
-  void swap(String& S) {
-    std::swap(size, S.size);
-    std::swap(str, S.str);
-    std::swap(bufferSize, S.bufferSize);
-  }
-  String& operator=(const String& S) {
-    String copy(S);
+
+  String& operator=(const String& string) {
+    String copy(string);
     swap(copy);
     return *this;
   }
@@ -124,11 +97,47 @@ class String {
   char& operator[](size_t index) {
     return str[index];
   }
+
+ private:
+
+  //-----------------------------------MAIN FIELDS------------------------------------------------
+  char* str = nullptr;
+  size_t size = 0;
+  size_t bufferSize = 32;
+
+  //--------------------------------------------MEMORY---------------------------------------------
+  void increaseSize();
+  void decreaseSize();
+  //--------------------------------------HELP FUCTIONS-------------------------------------------
+
+  void swap(String& string) {
+    std::swap(size, string.size);
+    std::swap(str, string.str);
+    std::swap(bufferSize, string.bufferSize);
+  }
+
+  size_t findHelper(const String& string, bool reversed) const {
+    for (size_t i = (reversed ? size - string.size + 1 : 0); (reversed ? i >= 1 : i < size - string.size);
+         (reversed ? --i : ++i)) {
+      int flag = 1;
+      for (size_t j = 0; j < string.size; ++j) {
+        if (str[i + j - reversed] != string.str[j]) {
+          flag = 0;
+          break;
+        }
+      }
+      if (flag == 1) {
+        return i - reversed;
+      }
+    }
+    return size;
+  }
+
 };
 
 void String::increaseSize() {
   bufferSize = 2 * bufferSize + 3;
-  char *copy = new char[bufferSize];
+  char* copy = new char[bufferSize];
   memcpy(copy, str, size);
   delete[] str;
   str = copy;
@@ -136,6 +145,10 @@ void String::increaseSize() {
 
 void String::decreaseSize() {
   bufferSize = bufferSize / 2;
+  char* copy = new char[bufferSize];
+  memcpy(copy, str, size);
+  delete[] str;
+  str = copy;
 }
 
 size_t String::length() const {
@@ -176,9 +189,10 @@ bool String::empty() const {
   else return true;
 }
 void String::clear() {
-  while (size > 0) {
-    pop_back();
-  }
+  size = 0;
+  bufferSize = 3;
+  delete str[];
+  str = new char[bufferSize];
 }
 
 String operator+(const String& arg1, const String& arg2) {
