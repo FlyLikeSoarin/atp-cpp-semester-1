@@ -1,6 +1,6 @@
 #include <iostream>
 
-bool isindex(int index1, int *index, int numberOfArrays) {
+bool isIndex(int index1, int *index, int numberOfArrays) {
   for (int i = 0; i < numberOfArrays; ++i) {
     if (index[i] == index1) {
       return true;
@@ -8,16 +8,16 @@ bool isindex(int index1, int *index, int numberOfArrays) {
   }
   return false;
 }
-void foo(int numberOfArrays, int currentArray, int product, long long &sum, int *index, int **values, int *arr) {
+void CalculateSumOfProducts(int numberOfArrays, int currentArray, int product, long long &sum, int *index, int **values, int *arr) {
   if (currentArray == numberOfArrays) {
     sum += product;
     index[currentArray - 1] = -1;
     return;
   }
   for (int i = 0; i < arr[currentArray]; ++i) {
-    if (!isindex(i, index, numberOfArrays)) {
+    if (!isIndex(i, index, numberOfArrays)) {
       index[currentArray] = i;
-      foo(numberOfArrays, currentArray + 1, product * values[currentArray][i], sum, index, values, arr);
+      CalculateSumOfProducts(numberOfArrays, currentArray + 1, product * values[currentArray][i], sum, index, values, arr);
       index[currentArray] = -1;
     }
   }
@@ -39,7 +39,7 @@ int main(int argc, char *argv[]) {
       std::cin >> values[i][j];
     }
   }
-  foo(numberOfArrays, 0, 1, sum, index, values, arr);
+  CalculateSumOfProducts(numberOfArrays, 0, 1, sum, index, values, arr);
   std::cout << sum;
   delete[] arr;
   delete[] index;
