@@ -36,7 +36,10 @@ public:
         }
     }
 
-    BigInteger(unsigned long int num) : sign(0) {
+    BigInteger(unsigned long int num) : sign(1) {
+	if (num == 0) {
+	      sign = 0;
+	}	      
         while (num != 0) {
             numbers.push_back(num % BASE);
             num /= BASE;
@@ -302,11 +305,6 @@ private:
         new_num = result_num;
     }
 
-    static int make_sign(int num) {
-        if (num > 0) return 1;
-        else if (num < 0) return -1;
-        else return 0;
-    }
 
     static int make_sign(long long num) {
         if (num > 0) return 1;
@@ -592,7 +590,7 @@ public:
     explicit operator double() const {
         double ran = 0;
         BigInteger int_part = numerator / denominator;
-        BigInteger float_part = (numerator - int_part * denominator) * BigInteger(BASE * BASE) * BigInteger(BASE * BASE);
+        BigInteger float_part = (numerator - int_part * denominator) * BigInteger(BASE_SQR) * BigInteger(BASE_SQR);
         float_part /= denominator;
         ran += long(int_part);
 
@@ -651,7 +649,7 @@ private:
     BigInteger numerator;
     BigInteger denominator;
 
-    static const int BASE = 10000;
+    static const int BASE_SQR = 100000000;
 
     Rational& do_rational_sum(const Rational& rat, int op) {
         if (denominator != rat.denominator) {
