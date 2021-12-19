@@ -11,6 +11,168 @@ using std::vector;
 using std::string;
 
 class BigInteger {
+public:
+    BigInteger(int num) : sign(make_sign(num)) {
+        if (num != 0) {
+            num = num * sign;
+            while (num > 0) {
+                numbers.push_back(num % BASE);
+                num /= BASE;
+            }
+        } else {
+            numbers.push_back(0);
+        }
+    }
+
+    BigInteger(long long num) : sign(make_sign(num)) {
+        if (num != 0) {
+            num = sign * num;
+            while (num > 0) {
+                numbers.push_back(num % BASE);
+                num /= BASE;
+            }
+        } else {
+            numbers.push_back(0);
+        }
+    }
+
+    BigInteger(unsigned long int num) : sign(0) {
+        while (num != 0) {
+            numbers.push_back(num % BASE);
+            num /= BASE;
+        }
+    }
+
+    BigInteger() = default;
+
+    BigInteger(const BigInteger& num) : sign(num.sign) {
+        numbers = num.numbers;
+    }
+
+    ~BigInteger() = default;
+
+    BigInteger& operator = (BigInteger num) {
+        if (&*this == &num) {
+            return *this;
+        }
+        clear();
+        sign = num.sign;
+        numbers = num.numbers;
+        return *this;
+    }
+
+    BigInteger& operator += (const BigInteger& num_2) {
+        return do_algebra_sum(num_2, 1);
+    }
+
+    BigInteger& operator -= (const BigInteger& num_2) {
+        return do_algebra_sum(num_2, -1);
+    }
+
+    BigInteger& operator *= (const BigInteger& num_2) {
+        return do_multiplication(num_2);
+    }
+
+    BigInteger& operator /= (const BigInteger& num_2) {
+        return do_division(num_2);
+    }
+
+    BigInteger& operator %= (const BigInteger& num_2) {
+        return do_modular_reward(num_2);
+    }
+
+    string toString() const {
+        string str_num;
+        if (sign == -1) {
+            str_num.push_back('-');
+        }
+        for (size_t i = 1; i <= numbers.size(); ++i) {
+            string new_part = std::to_string(numbers[numbers.size() - i]);
+            size_t num_zero = 0;
+            if (i != 1) {
+                num_zero = BASE_LENGTH - new_part.size();
+            }
+            str_num += string(num_zero, '0');
+            str_num += new_part;
+        }
+        return str_num;
+    }
+
+    void clear() {
+        numbers.clear();
+    }
+
+    BigInteger operator - () const {
+        BigInteger copy = *this;
+        copy.sign *= -1;
+        return copy;
+    }
+
+    BigInteger& operator ++ () {
+        BigInteger one(1);
+        *this += one;
+        return *this;
+    }
+
+    BigInteger operator ++ (int) {
+        BigInteger copy = *this;
+        ++(*this);
+        return copy;
+    }
+
+    bool operator < (const BigInteger& num_2) const {
+        return (BigInteger::cmp_value(*this, num_2));
+    }
+
+    bool operator > (const BigInteger& num_2) const {
+        return num_2 < *this;
+    }
+
+    bool operator == (const BigInteger& num_2) const {
+        return (!(*this < num_2) && !(num_2 < *this));
+    }
+
+    bool operator != (const BigInteger& num_2) const {
+        return !(*this == num_2);
+    }
+
+    bool operator <= (const BigInteger& num_2) const {
+        return (*this < num_2) || (*this == num_2);
+    }
+
+    bool operator >= (const BigInteger& num_2) const {
+        return num_2 <= *this;
+    }
+
+    explicit operator bool() const{
+        BigInteger zero(0);
+        return (*this != zero);
+    }
+    explicit operator int() const {
+        int num = 0;
+        int step = 1;
+        for (int a: numbers) {
+            num += a * step;
+            step *= BASE;
+        }
+        num *= sign;
+        return num;
+    }
+    explicit operator long() const {
+        long num = 0;
+        long step = 1;
+        for (long a: numbers) {
+            num += a * step;
+            step *= BASE;
+        }
+        num *= sign;
+        return num;
+    }
+
+    friend std::ostream& operator << (std::ostream& out_stream, const BigInteger& num);
+    friend std::istream& operator >> (std::istream& in_stream, BigInteger& num);
+
+private:
     vector<long long> numbers;
     int sign = 0;
 
@@ -258,167 +420,6 @@ class BigInteger {
         }
         return *this;
     }
-
-public:
-    BigInteger(int num) : sign(make_sign(num)) {
-        if (num != 0) {
-            num = num * sign;
-            while (num > 0) {
-                numbers.push_back(num % BASE);
-                num /= BASE;
-            }
-        } else {
-            numbers.push_back(0);
-        }
-    }
-
-    BigInteger(long long num) : sign(make_sign(num)) {
-        if (num != 0) {
-            num = sign * num;
-            while (num > 0) {
-                numbers.push_back(num % BASE);
-                num /= BASE;
-            }
-        } else {
-            numbers.push_back(0);
-        }
-    }
-
-    BigInteger(unsigned long int num) : sign(0) {
-        while (num != 0) {
-            numbers.push_back(num % BASE);
-            num /= BASE;
-        }
-    }
-
-    BigInteger() = default;
-
-    BigInteger(const BigInteger& num) : sign(num.sign) {
-        numbers = num.numbers;
-    }
-
-    ~BigInteger() = default;
-
-    BigInteger& operator = (BigInteger num) {
-        if (&*this == &num) {
-            return *this;
-        }
-        clear();
-        sign = num.sign;
-        numbers = num.numbers;
-        return *this;
-    }
-
-    BigInteger& operator += (const BigInteger& num_2) {
-        return do_algebra_sum(num_2, 1);
-    }
-
-    BigInteger& operator -= (const BigInteger& num_2) {
-        return do_algebra_sum(num_2, -1);
-    }
-
-    BigInteger& operator *= (const BigInteger& num_2) {
-        return do_multiplication(num_2);
-    }
-
-    BigInteger& operator /= (const BigInteger& num_2) {
-        return do_division(num_2);
-    }
-
-    BigInteger& operator %= (const BigInteger& num_2) {
-        return do_modular_reward(num_2);
-    }
-
-    string toString() const {
-        string str_num;
-        if (sign == -1) {
-            str_num.push_back('-');
-        }
-        for (size_t i = 1; i <= numbers.size(); ++i) {
-            string new_part = std::to_string(numbers[numbers.size() - i]);
-            size_t num_zero = 0;
-            if (i != 1) {
-                num_zero = BASE_LENGTH - new_part.size();
-            }
-            str_num += string(num_zero, '0');
-            str_num += new_part;
-        }
-        return str_num;
-    }
-
-    void clear() {
-        numbers.clear();
-    }
-
-    BigInteger operator - () const {
-        BigInteger copy = *this;
-        copy.sign *= -1;
-        return copy;
-    }
-
-    BigInteger& operator ++ () {
-        BigInteger one(1);
-        *this += one;
-        return *this;
-    }
-
-    BigInteger operator ++ (int) {
-        BigInteger copy = *this;
-        ++(*this);
-        return copy;
-    }
-
-    bool operator < (const BigInteger& num_2) const {
-        return (BigInteger::cmp_value(*this, num_2));
-    }
-
-    bool operator > (const BigInteger& num_2) const {
-        return num_2 < *this;
-    }
-
-    bool operator == (const BigInteger& num_2) const {
-        return (!(*this < num_2) && !(num_2 < *this));
-    }
-
-    bool operator != (const BigInteger& num_2) const {
-        return !(*this == num_2);
-    }
-
-    bool operator <= (const BigInteger& num_2) const {
-        return (*this < num_2) || (*this == num_2);
-    }
-
-    bool operator >= (const BigInteger& num_2) const {
-        return num_2 <= *this;
-    }
-
-    explicit operator bool() const{
-        BigInteger zero(0);
-        return (*this != zero);
-    }
-    explicit operator int() const {
-        int num = 0;
-        int step = 1;
-        for (int a: numbers) {
-            num += a * step;
-            step *= BASE;
-        }
-        num *= sign;
-        return num;
-    }
-    explicit operator long() const {
-        long num = 0;
-        long step = 1;
-        for (long a: numbers) {
-            num += a * step;
-            step *= BASE;
-        }
-        num *= sign;
-        return num;
-    }
-
-    friend std::ostream& operator << (std::ostream& out_stream, const BigInteger& num);
-    friend std::istream& operator >> (std::istream& in_stream, BigInteger& num);
 };
 
 BigInteger operator + (const BigInteger& num_1, const BigInteger& num_2) {
@@ -490,69 +491,6 @@ std::istream& operator >> (std::istream& in_stream, BigInteger& num) {
 
 
 class Rational {
-    BigInteger numerator;
-    BigInteger denominator;
-
-    static const int BASE = 10000;
-
-    Rational& do_rational_sum(const Rational& rat, int op) {
-        if (denominator != rat.denominator) {
-            numerator *= rat.denominator;
-            if (op == 1) {
-                numerator += rat.numerator * denominator;
-            } else {
-                numerator -= rat.numerator * denominator;
-            }
-            denominator *= rat.denominator;
-        } else {
-            if (op == 1) {
-                numerator += rat.numerator;
-            } else {
-                numerator -= rat.numerator;
-            }
-        }
-        if (numerator == BigInteger(0)) {
-            denominator = BigInteger(1);
-        }
-
-        if (denominator < BigInteger(0)) {
-            denominator *= BigInteger(-1);
-            numerator *= BigInteger(-1);
-        }
-
-        do_right_rational();
-        return *this;
-    }
-
-    Rational& do_rational_multiplication(const Rational& rat) {
-        numerator *= rat.numerator;
-        denominator *= rat.denominator;
-
-        if (denominator < BigInteger(0)) {
-            denominator *= BigInteger(-1);
-            numerator *= BigInteger(-1);
-        }
-        do_right_rational();
-        return *this;
-    }
-
-    Rational& do_rational_division(const Rational& rat) {
-        numerator *= rat.denominator;
-        denominator *= (rat.numerator > BigInteger(0) ? rat.numerator : -rat.numerator);
-        numerator *= (rat.numerator > BigInteger(0) ? BigInteger(1) : BigInteger(-1));
-        do_right_rational();
-        return *this;
-    }
-
-    static BigInteger euclidean_algorithm(const BigInteger& a, const BigInteger& b) {
-        if (a % b == BigInteger(0)) {
-            return b;
-        }
-        return euclidean_algorithm(b, a % b);
-    }
-
-    friend std::ostream& operator << (std::ostream& out_stream, const Rational& rat);
-
 public:
     Rational(const BigInteger& rat) {
         numerator = rat;
@@ -709,6 +647,69 @@ public:
 
         return str_decimal;
     }
+private:
+    BigInteger numerator;
+    BigInteger denominator;
+
+    static const int BASE = 10000;
+
+    Rational& do_rational_sum(const Rational& rat, int op) {
+        if (denominator != rat.denominator) {
+            numerator *= rat.denominator;
+            if (op == 1) {
+                numerator += rat.numerator * denominator;
+            } else {
+                numerator -= rat.numerator * denominator;
+            }
+            denominator *= rat.denominator;
+        } else {
+            if (op == 1) {
+                numerator += rat.numerator;
+            } else {
+                numerator -= rat.numerator;
+            }
+        }
+        if (numerator == BigInteger(0)) {
+            denominator = BigInteger(1);
+        }
+
+        if (denominator < BigInteger(0)) {
+            denominator *= BigInteger(-1);
+            numerator *= BigInteger(-1);
+        }
+
+        do_right_rational();
+        return *this;
+    }
+
+    Rational& do_rational_multiplication(const Rational& rat) {
+        numerator *= rat.numerator;
+        denominator *= rat.denominator;
+
+        if (denominator < BigInteger(0)) {
+            denominator *= BigInteger(-1);
+            numerator *= BigInteger(-1);
+        }
+        do_right_rational();
+        return *this;
+    }
+
+    Rational& do_rational_division(const Rational& rat) {
+        numerator *= rat.denominator;
+        denominator *= (rat.numerator > BigInteger(0) ? rat.numerator : -rat.numerator);
+        numerator *= (rat.numerator > BigInteger(0) ? BigInteger(1) : BigInteger(-1));
+        do_right_rational();
+        return *this;
+    }
+
+    static BigInteger euclidean_algorithm(const BigInteger& a, const BigInteger& b) {
+        if (a % b == BigInteger(0)) {
+            return b;
+        }
+        return euclidean_algorithm(b, a % b);
+    }
+
+    friend std::ostream& operator << (std::ostream& out_stream, const Rational& rat);
 };
 
 std::ostream& operator << (std::ostream& out_stream, const Rational& rat) {
