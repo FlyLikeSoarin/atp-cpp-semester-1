@@ -651,28 +651,6 @@ Residue<N> operator/(const Residue<N>& num1, const Residue<N>& num2) {
 
 template<size_t M, size_t N = M, typename Field = Rational>
 class Matrix {
- private:
-  vector<vector<Field>> matrix;
-  [[nodiscard]] std::pair<Matrix<M, N, Field>, size_t> triangulation() const {
-    Matrix<M, N, Field> matrix1 = *this;
-    size_t amount_of_swaps = 0;
-    for (size_t i = 0; i < std::min(N, M); ++i) {
-      size_t row = i;
-      while (row < M - 1 && matrix1[row][i] == Field(0)) ++row;
-      if (row != i) {
-        std::swap(matrix1[row], matrix1[i]);
-        ++amount_of_swaps;
-      }
-      if (matrix1[i][i] != 0)
-        for (size_t j = i + 1; j < M; ++j) {
-          Field dividor = matrix1[j][i] / matrix1[i][i];
-          for (size_t z = i; z < N; ++z) {
-            matrix1[j][z] -= matrix1[i][z] * dividor;
-          }
-        }
-    }
-    return {matrix1, amount_of_swaps};
-  }
  public:
   Matrix(const vector<vector<Field>> &matrix1) : matrix(matrix1) {}
   template<typename = typename std::enable_if<N == M>>
@@ -714,7 +692,6 @@ class Matrix {
     return *this;
   }
   Matrix<M, N, Field> &operator*=(const Field &num) {
-//    std::cerr << 8 << std::endl;
     for (size_t i = 0; i < M; ++i) {
       for (size_t j = 0; j < N; ++j) {
         matrix[i][j] *= num;
@@ -832,6 +809,28 @@ class Matrix {
   }
   vector<Field> operator[](size_t ind) const {
     return matrix[ind];
+  }
+  private:
+  vector<vector<Field>> matrix;
+  [[nodiscard]] std::pair<Matrix<M, N, Field>, size_t> triangulation() const {
+    Matrix<M, N, Field> matrix1 = *this;
+    size_t amount_of_swaps = 0;
+    for (size_t i = 0; i < std::min(N, M); ++i) {
+      size_t row = i;
+      while (row < M - 1 && matrix1[row][i] == Field(0)) ++row;
+      if (row != i) {
+        std::swap(matrix1[row], matrix1[i]);
+        ++amount_of_swaps;
+      }
+      if (matrix1[i][i] != 0)
+        for (size_t j = i + 1; j < M; ++j) {
+          Field dividor = matrix1[j][i] / matrix1[i][i];
+          for (size_t z = i; z < N; ++z) {
+            matrix1[j][z] -= matrix1[i][z] * dividor;
+          }
+        }
+    }
+    return {matrix1, amount_of_swaps};
   }
 };
 
