@@ -87,20 +87,6 @@ class BigInteger {
     return s;
   }
   BigInteger &operator*=(const BigInteger &num) {
-    /*vector<int> result;
-    result.resize(arr.size() + num.arr.size());
-    for (int i = 0; i < int(arr.size()); ++i) {
-      int addible = 0;
-      for (int j = 0; j < int(num.arr.size()) || addible != 0; ++j) {
-        long long current = result[i + j] + arr[i] * 1LL * (j < int(num.arr.size()) ? num.arr[j] : 0) + addible;
-        result[i + j] = static_cast<int>(current % base);
-        addible = static_cast<int>(current / base);
-      }
-    }
-    arr = result;
-    is_negative = (is_negative + num.is_negative) % 2;
-    remove_zeros();
-    return *this;*/
     is_negative = (is_negative + num.is_negative) % 2;
     vector<long long> numbers(arr.size() + num.arr.size());
     for (int i = 0; i < int(num.arr.size()); ++i) {
@@ -114,56 +100,6 @@ class BigInteger {
     remove_zeros();
     return *this;
   }
-
-  /*static BigInteger pr(const BigInteger &num1, const BigInteger &num2, int l1, int r1, int l2, int r2) {
-    int n = std::max(r1 - l1, r2 - l2);
-    if (n == 0) {
-      BigInteger tmp;
-      long long tmp1 = num1.arr[l1] * num2.arr[l2];
-      tmp.arr.resize(l1 + 1, 0);
-      tmp.arr[l1] = tmp1 % base;
-      tmp.arr[l1 + 1] = (tmp1 / base) % base;
-    } else {
-      return pr(num1, num2, l1, r1 / 2, l2, r2 / 2) + (pr(num1, num2, l1, r1 / 2, l2, r2 / 2))
-    }
-  }
-  BigInteger &operator*=(const BigInteger &num) {
-    string num1 = toString(), num2 = num.toString();
-    int sz = std::max(num1.size(), num2.size());
-    if (sz == 1) {
-      *this = arr[0] * num.arr[0];
-    }
-  }*/
-  /*void abs_sum(const BigInteger& num) {
-    arr.resize(std::max(arr.size(), num.arr.size()) + 1);
-    for (size_t i = 0; i < num.arr.size(); ++i) {
-      arr[i] += num.arr[i];
-      if (arr[i] > 0) {
-        ++arr[i + 1];
-        arr[i] -= base;
-      }
-    }
-    is_negative = false;
-  }
-  void abs_dif(const BigInteger& num) {
-    arr.resize(std::max(arr.size(), num.arr.size()));
-    for (size_t i = 0; i < num.arr.size(); ++i) {
-      arr[i] -= num.arr[i];
-      if (arr[i] < 0 && i != num.arr.size() - 1) {
-        arr[i] += base;
-        --arr[i + 1];
-      }
-    }
-    is_negative = false;
-    if (arr[arr.size() - 1] < 0) {
-      is_negative = true;
-      arr[arr.size() - 1] *= -1;
-      for (int i = int(arr.size() - 2); i >= 0; --i) {
-        arr[i] = base - arr[i];
-        --arr[i + 1];
-      }
-    }
-  }*/
   BigInteger &operator+=(const BigInteger &num) {
     if (!((is_negative + num.is_negative)) % 2) {
       long long addible = 0;
@@ -210,19 +146,6 @@ class BigInteger {
     }
     remove_zeros();
     return *this;
-    /*bool flag = is_negative;
-    if (is_negative == num.is_negative) {
-      abs_sum(num);
-      is_negative = flag;
-    }
-    else {
-      abs_dif(num);
-      if (!flag) {
-        is_negative = !is_negative;
-      }
-    }
-    remove_zeros();
-    return *this;*/
   }
   BigInteger& operator-=(const BigInteger& num) {
     if (((is_negative + num.is_negative)) % 2) {
@@ -271,7 +194,7 @@ class BigInteger {
     remove_zeros();
     return *this;
   }
-  vector<long long> del(const BigInteger& num) {
+  vector<long long> unsigned_del_of_two_numbers(const BigInteger& num) {
     bool flag = (is_negative + num.is_negative) % 2;
     vector<long long> tmp(num.arr.size());
     vector<long long> result(arr.size());
@@ -334,12 +257,12 @@ class BigInteger {
     return tmp;
   }
   BigInteger &operator/=(const BigInteger &num) {
-    del(num);
+    unsigned_del_of_two_numbers(num);
     remove_zeros();
     return *this;
   }
   BigInteger &operator%=(const BigInteger &num) {
-      arr = del(num);
+      arr = unsigned_del_of_two_numbers(num);
       remove_zeros();
       return *this;
   }
