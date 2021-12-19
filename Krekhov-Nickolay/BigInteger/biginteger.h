@@ -12,12 +12,172 @@ bool operator<=(const BigInteger& arg1, const BigInteger& arg2);
 bool operator>=(const BigInteger& arg1, const BigInteger& arg2);
 
 class BigInteger {
+
+
+ public:
+
+//Constructors
+  BigInteger() {
+    sign_ = false;
+    digits_.push_back(0);
+  }
+
+
+  BigInteger(const BigInteger& num) : sign_(num.sign_), digits_(num.digits_) {}
+
+  BigInteger(const long long num) {
+    (num >= 0) ? sign_ = false : sign_ = true;
+    if (num >= BASE) {
+      digits_.push_back(num * ((!sign_) ? 1 : -1) % BASE);
+      digits_.push_back(num * ((!sign_) ? 1 : -1) / BASE);
+    } else {
+      digits_.push_back(num * ((!sign_) ? 1 : -1));
+    }
+  }
+  BigInteger(const std::string& S) {
+    fromString(S);
+  }
+
+  long long size() const {
+    return digits_.size();
+  }
+  bool isPositive() const {
+    return !sign_;
+  }
+  void makePositive() const {
+    sign_ = false;
+  }
+  void makeNegative() const {
+    sign_ = true;
+  }
+
+  bool isEven() const {
+    return !(digits_[0] % 2);
+  }
+  std::string toString() const {
+    std::string result = "";
+    if ((digits_.empty()) || ((digits_[0] == 0) & (digits_.size() == 1))) {
+      result = "0";
+    } else {
+      if (sign_) {
+        result += "-";
+      }
+      result += std::to_string(digits_[digits_.size() - 1]);
+      for (long long i = digits_.size() - 2; i >= 0; i--) {
+        result += add_zeros(std::to_string(digits_[i]));
+      }
+
+    }
+    return result;
+  }
+
+// operators
+  BigInteger& operator=(const BigInteger& num) {
+    BigInteger copy(num);
+    swap(copy);
+    return *this;
+  }
+
+  const BigInteger operator-() const {
+    BigInteger copy = *this;
+    copy.sign_ = !sign_;
+    return copy;
+  }
+
+  BigInteger& operator+=(const BigInteger& arg) {
+    if ((!sign_ && !arg.sign_) || (sign_ && arg.sign_)) return sum(arg);
+    else if (!sign_ && arg.sign_) {
+      if (compare_less_abs(arg)) {
+
+        differnceFromSmaller(arg);
+        sign_ = true;
+        return *this;
+      } else {
+        return differenceFromLarger(arg);
+      }
+    } else {
+      if (compare_less_abs(arg)) {
+        sign_ = false;
+        differnceFromSmaller(arg);
+        return *this;
+      } else {
+
+        return differenceFromLarger(arg);
+      }
+    }
+  }
+
+  BigInteger& operator-=(const BigInteger& arg) {
+    if (arg == (*this)) {
+      *this = 0;
+      return *this;
+    }
+    arg.sign_ = !arg.sign_;
+    *this += arg;
+    arg.sign_ = !arg.sign_;
+    return *this;
+  }
+
+  BigInteger& operator*=(const BigInteger& arg) {
+    BigInteger result;
+    result.digits_.resize(size() + arg.size() + 1, 0);
+    for (long long i = 0; i < size(); ++i) {
+      uint64_t temporary = 0;
+
+      for (long long j = 0; j < arg.size() || temporary != 0; ++j) {
+        uint64_t cur = result.digits_[i + j] + digits_[i] * (j < arg.size() ? arg.digits_[j] : 0) + temporary;
+        result.digits_[i + j] = (cur % BASE);
+        temporary = (cur / BASE);
+      }
+    }
+    result.remove_leading_zeros();
+    bool sign;
+    if ((arg.sign_ && sign_) || (!arg.sign_ && !sign_)) sign = false;
+    else sign = true;
+    *this = result;
+    sign_ = sign;
+    return *this;
+  }
+
+  BigInteger& operator/=(const BigInteger& arg) {
+    return divAndMod(arg, false);
+  }
+
+
+  BigInteger& operator%=(const BigInteger& arg) {
+    return divAndMod(arg,true);
+  }
+
+  explicit operator bool() const {
+    return !(*this == 0);
+  }
+
+  BigInteger& operator++() {
+    return *this += 1;
+  }
+  BigInteger operator++(int) {
+    BigInteger value = *this;
+    *this += 1;
+    return value;
+  }
+
+  BigInteger& operator--() {
+    return *this -= 1;
+  }
+  BigInteger operator--(int) {
+    BigInteger value = *this;
+    *this -= 1;
+    return value;
+  }
+
+
+
+
+
  private:
   friend bool operator<(const BigInteger& arg1, const BigInteger& arg2);
   friend bool operator==(const BigInteger& arg1, const BigInteger& arg2);
   friend std::istream& operator>>(std::istream& in, BigInteger& num);
-//  friend bool isZero();
-
 
   mutable bool sign_ = false;
   vector<long long> digits_;
@@ -25,7 +185,7 @@ class BigInteger {
   static const long long BASE = 1000000000;
   static const int long long BASE_LENGTH = 9;
 
-  //secondary functions
+//secondary functions
 
   void shift_right() {
     if (size() == 0) {
@@ -38,11 +198,11 @@ class BigInteger {
     digits_[0] = 0;
   }
 
-  static std::string add_zeros(std::string S) {
-    while (S.size() < BASE_LENGTH) {
-      S = "0" + S;
+  static std::string add_zeros(std::string str) {
+    while (str.size() < BASE_LENGTH) {
+      str = "0" + str;
     }
-    return S;
+    return str;
   }
 
   bool compare_less_abs(const BigInteger& arg2) const {
@@ -75,22 +235,22 @@ class BigInteger {
     while ((!digits_.empty()) && (digits_.back() == 0)) {
       digits_.pop_back();
     }
-    if (digits_.size() == 1 && digits_[0] == 0) {
+    if ((digits_.size() == 1 && digits_[0] == 0) ||(digits_.empty())) {
       sign_ = false;
     }
   }
 
-  void fromString(std::string S) {
+  void fromString(std::string str) {
     clear();
-    if (S[0] == '-') {
+    if (str[0] == '-') {
       sign_ = true;
-      S.erase(0, 1);
+      str.erase(0, 1);
     }
-    for (long long i = S.size(); i > 0; i -= BASE_LENGTH) {
+    for (long long i = str.size(); i > 0; i -= BASE_LENGTH) {
       if (i < BASE_LENGTH) {
-        digits_.push_back(std::stoi(S.substr(0, i)));
+        digits_.push_back(std::stoi(str.substr(0, i)));
       } else {
-        digits_.push_back(std::stoi(S.substr(i - 9, 9)));
+        digits_.push_back(std::stoi(str.substr(i - 9, 9)));
       }
     }
     remove_leading_zeros();
@@ -110,7 +270,7 @@ class BigInteger {
     remove_leading_zeros();
     return *this;
   }
-  BigInteger& subtraction(const BigInteger& num) {
+  BigInteger& differenceFromLarger(const BigInteger& num) { // 1000-555 *this >= num
     long long temporary = 0;
     for (long long numberOfDigit = 0; (temporary != 0) || (numberOfDigit < std::max(size(), num.size()));
          ++numberOfDigit) {
@@ -121,7 +281,7 @@ class BigInteger {
     remove_leading_zeros();
     return *this;
   }
-  BigInteger& subtraction1(const BigInteger& num) {  //555-10000 *this<num;
+  BigInteger& differnceFromSmaller(const BigInteger& num) {  //555-10000 *this<num;
     long long temporary = 0;
     for (long long numberOfDigit = 0; (temporary != 0) || (numberOfDigit < std::max(size(), num.size()));
          ++numberOfDigit) {
@@ -135,149 +295,46 @@ class BigInteger {
     }
     remove_leading_zeros();
     return *this;
+
   }
 
- public:
-
-  //Constructors
-  BigInteger() {
-    sign_ = false;
-    digits_.push_back(0);
-  };
-  BigInteger(const BigInteger& num) : sign_(num.sign_), digits_(num.digits_) {}
-
-  BigInteger(const long long num) {
-    (num >= 0) ? sign_ = false : sign_ = true;
-    if (num >= BASE) {
-      digits_.push_back(num * ((!sign_) ? 1 : -1) % BASE);
-      digits_.push_back(num * ((!sign_) ? 1 : -1) / BASE);
-    } else {
-      digits_.push_back(num * ((!sign_) ? 1 : -1));
-    }
-  }
-  BigInteger(const std::string& S) {
-    fromString(S);
-  }
-
-  long long size() const {
-    return digits_.size();
-  }
-  bool isPositive() const {
-    return !sign_;
-  }
-  void makePositive() const {
-    sign_ = false;
-  }
-  void makeNegative() const {
-    sign_ = true;
-  }
-
-  std::string toString() const {
-    std::string result = "";
-    if ((digits_.empty()) || ((digits_[0] == 0) & (digits_.size() == 1))) {
-      result = "0";
-    } else {
-      if (sign_) {
-        result += "-";
-      }
-      result += std::to_string(digits_[digits_.size() - 1]);
-      for (long long i = digits_.size() - 2; i >= 0; i--) {
-        result += add_zeros(std::to_string(digits_[i]));
-      }
-
-    }
-    return result;
-  }
-  // operators
-  BigInteger& operator=(const BigInteger& num) {
-    BigInteger copy(num);
-    swap(copy);
-    return *this;
-  }
-
-  const BigInteger operator-() const {
-    BigInteger copy = *this;
-    copy.sign_ = !sign_;
-    return copy;
-  }
-
-  BigInteger& operator+=(const BigInteger& arg) {
-    if ((!sign_ && !arg.sign_) || (sign_ && arg.sign_)) return sum(arg);
-    else if (!sign_ && arg.sign_) {
-      if (compare_less_abs(arg)) {
-
-        subtraction1(arg);
-        sign_ = true;
-        return *this;
-      } else {
-        return subtraction(arg);
-      }
-    } else {
-      if (compare_less_abs(arg)) {
-        sign_ = false;
-        subtraction1(arg);
-        return *this;
-      } else {
-
-        return subtraction(arg);
-      }
-    }
-  }
-
-  BigInteger& operator-=(const BigInteger& arg) {
-    if(arg==(*this)){
-      *this=0;
-      return *this;
-    }
-    arg.sign_ = !arg.sign_;
-    *this += arg;
-    arg.sign_ = !arg.sign_;
-    return *this;
-  }
-
-  BigInteger& operator*=(const BigInteger& arg) {
-    BigInteger result;
-    result.digits_.resize(size() + arg.size() + 1, 0);
-    for (long long i = 0; i < size(); ++i) {
-      uint64_t temporary = 0;
-
-      for (long long j = 0; j < arg.size() || temporary != 0; ++j) {
-        uint64_t cur = result.digits_[i + j] + digits_[i] * (j < arg.size() ? arg.digits_[j] : 0) + temporary;
-        result.digits_[i + j] = (cur % BASE);
-        temporary = (cur / BASE);
-      }
-    }
-    result.remove_leading_zeros();
-    bool sign;
-    if ((arg.sign_ && sign_) || (!arg.sign_ && !sign_)) sign = false;
-    else sign = true;
-    *this = result;
-    sign_ = sign;
-    return *this;
-  }
-
-  BigInteger& operator/=(const BigInteger& arg) {
+  BigInteger& divAndMod(const BigInteger& arg,bool divOrMod) { //div=false,mod=true;
     if (arg.size() == 1) {
       long long divider = arg.digits_[0];
       long long temporary = 0;
       long long composition;
+      bool sign1 = (sign_ != arg.sign_);
       for (long long i = size() - 1; i >= 0; --i) {
         composition = digits_[i] + temporary * BASE;
         digits_[i] = composition / divider;
         temporary = composition % divider;
       }
-      sign_ = (sign_ != arg.sign_);
-      remove_leading_zeros();
-      return *this;
-    } else {
-      if (compare_less_abs(arg)) {
-        *this = 0;
+      if (divOrMod) {
+        remove_leading_zeros();
+        *this = temporary;
+        sign_ = sign1;
+        return *this;
+      } else {
+        sign_ = (sign_ != arg.sign_);
+        remove_leading_zeros();
         return *this;
       }
+    } else {
+      if (compare_less_abs(arg)) {
+        if (divOrMod){
+          sign_ = arg.sign_ != sign_;
+          return *this;
+        } else {
+          *this = 0;
+          return *this;
+        }
+      }
+
       BigInteger tmp;
       BigInteger result;
       BigInteger firstPart;
       result.digits_.resize(size(), 0);
+      bool sign2 = arg.sign_;
       bool sign = arg.sign_;
       arg.sign_ = false;
 
@@ -285,6 +342,7 @@ class BigInteger {
       long long middle;
       long long right;
       long long quotient;
+
       for (long long i = size() - 1; i >= 0; --i) {
         firstPart.shift_right();
         firstPart.digits_[0] = digits_[i];
@@ -325,126 +383,23 @@ class BigInteger {
           }
           firstPart -= (quotient * arg);
           result.digits_[i] = quotient;
-//          if (firstPart == 0) {
-//            firstPart.digits_.clear();
-//          }
         }
       }
-      arg.sign_ = sign;
-      result.sign_ = (sign_ != arg.sign_);
-      *this = result;
+      if (divOrMod){
+        arg.sign_ = sign2;
+        firstPart.sign_ = (sign_ != arg.sign_);
+        *this = firstPart;
+      } else {
+        arg.sign_ = sign;
+        result.sign_ = (sign_ != arg.sign_);
+        *this = result;
+      }
       remove_leading_zeros();
       return *this;
+
     }
   }
 
-  BigInteger& operator%=(const BigInteger& arg) {
-    if (arg.size() == 1) {
-      bool sign1 = (sign_ != arg.sign_);
-      long long divider = arg.digits_[0];
-      long long temporary = 0;
-      long long composition;
-      for (long long i = size() - 1; i >= 0; --i) {
-        composition = digits_[i] + temporary * BASE;
-        digits_[i] = composition / divider;
-        temporary = composition % divider;
-      }
-      remove_leading_zeros();
-      *this = temporary;
-      sign_ = sign1;
-      return *this;
-    } else {
-      if (compare_less_abs(arg)) {
-
-        sign_ = arg.sign_ != sign_;
-
-        return *this;
-      }
-      BigInteger tmp;
-      BigInteger result;
-      BigInteger firstPart;
-      result.digits_.resize(size(), 0);
-      bool sign2 = arg.sign_;
-      arg.sign_ = false;
-
-      long long left;
-      long long middle;
-      long long right;
-      long long quotient;
-      for (long long i = size() - 1; i >= 0; --i) {
-        firstPart.shift_right();
-        firstPart.digits_[0] = digits_[i];
-        firstPart.remove_leading_zeros();
-        left = 0;
-        quotient = 0;
-        right = BASE;
-        if (30 * arg >= firstPart) {
-          right = 30;
-          while (left <= right) {
-            middle = (left + right) / 2;
-            tmp = arg * middle;
-
-            if (tmp <= firstPart) {
-              quotient = middle;
-              left = middle + 1;
-            } else {
-              right = middle - 1;
-            }
-          }
-          firstPart -= (quotient * arg);
-          result.digits_[i] = quotient;
-          if (firstPart == 0) {
-            firstPart.digits_.clear();
-          }
-
-        } else {
-          while (left <= right) {
-            middle = (left + right) / 2;
-            tmp = arg * middle;
-
-            if (tmp <= firstPart) {
-              quotient = middle;
-              left = middle + 1;
-            } else {
-              right = middle - 1;
-            }
-          }
-          firstPart -= (quotient * arg);
-          result.digits_[i] = quotient;
-//          if (firstPart == 0) {
-//            firstPart.digits_.clear();
-//          }
-        }
-      }
-      arg.sign_ = sign2;
-      firstPart.sign_ = (sign_ != arg.sign_);
-      *this = firstPart;
-      remove_leading_zeros();
-      return *this;
-    }
-  }
-
-  explicit operator bool() const {
-    return !(*this == 0);
-  }
-
-  BigInteger& operator++() {
-    return *this += 1;
-  }
-  BigInteger operator++(int) {
-    BigInteger value = *this;
-    *this += 1;
-    return value;
-  }
-
-  BigInteger& operator--() {
-    return *this -= 1;
-  }
-  BigInteger operator--(int) {
-    BigInteger value = *this;
-    *this -= 1;
-    return value;
-  }
 
 };
 
@@ -523,51 +478,18 @@ std::ostream& operator<<(std::ostream& out, const BigInteger& num) {
 }
 
 class Rational {
- private:
-
-  friend bool operator<(const Rational& arg1, const Rational& arg2);
-  friend bool operator==(const Rational& arg1, const Rational& arg2);
-
-  BigInteger numerator_ = 1;
-  BigInteger denominator_ = 1;
-
-  static BigInteger gcd(const BigInteger& a, const BigInteger& b) {
-    if (b == 0) {
-      return a;
-    } else {
-      return gcd(b, a % b);
-    }
-  }
-
-
-  void swap(Rational& num) {
-    std::swap(numerator_, num.numerator_);
-    std::swap(denominator_, num.denominator_);
-  }
-
-  void normalize() {
-    if (numerator_.isPositive() == denominator_.isPositive()) {
-      numerator_.makePositive();
-      denominator_.makePositive();
-    } else {
-      numerator_.makeNegative();
-      denominator_.makePositive();
-    }
-    bool sign = !numerator_.isPositive();
-    numerator_.makePositive();
-    BigInteger del = gcd(numerator_, denominator_);
-    numerator_ /= del;
-    denominator_ /= del;
-    if (sign) {
-      numerator_.makeNegative();
-    }
-  }
 
  public:
-  Rational(const BigInteger& num) : numerator_(num), denominator_(1) {}
-  Rational(long long num) : numerator_(num), denominator_(1) {}
-  Rational(const Rational& num) = default;
-  Rational() = default;
+  Rational(
+      const BigInteger& num) : numerator_(num), denominator_(1)
+  {}
+  Rational(long long
+           num) : numerator_(num), denominator_(1)
+  {}
+  Rational(
+      const Rational& num) = default;
+  Rational() =
+  default;
 
   std::string toString() {
     std::string result;
@@ -576,7 +498,7 @@ class Rational {
     return result;
   }
 
-  explicit operator double () const {
+  explicit operator double() const {
     return std::atof(asDecimal(16).c_str());
   }
   const Rational operator-() const {
@@ -613,7 +535,6 @@ class Rational {
     if (arg.denominator_.isPositive() == arg.numerator_.isPositive()) {
       arg.denominator_.makePositive();
       arg.numerator_.makePositive();
-      denominator_ *= arg.denominator_;
     } else {
       arg.denominator_.makePositive();
       arg.numerator_.makeNegative();
@@ -639,6 +560,9 @@ class Rational {
     if (*this == 0) {
       *this = 0;
       return *this;
+    } else if (this == &arg) {
+      *this = 1;
+      return *this;
     }
     normalize();
     numerator_ = numerator_ * arg.denominator_;
@@ -648,12 +572,12 @@ class Rational {
   }
 
   std::string asDecimal(size_t precision) const {
-    bool sign=(denominator_.isPositive()!=numerator_.isPositive());
+    bool sign = (denominator_.isPositive() != numerator_.isPositive());
     numerator_.makePositive();
     denominator_.makePositive();
     std::string result = "";
-    if (sign){
-      result+='-';
+    if (sign) {
+      result += '-';
     }
     result += (numerator_ / denominator_).toString();
     if (precision != 0) {
@@ -664,21 +588,82 @@ class Rational {
         rem *= 10;
       }
       denominator_.makePositive();
-      if (sign){
+      if (sign) {
         numerator_.makeNegative();
       }
       std::string partAfterPoint = "";
       partAfterPoint += (rem / denominator_).toString();
-      std::string zeroes="";
-      while (partAfterPoint.size()+zeroes.size() < precision) {
+      std::string zeroes = "";
+      while (partAfterPoint.size() + zeroes.size() < precision) {
         zeroes += '0';
       }
-      result +=zeroes + partAfterPoint;
+      result += zeroes + partAfterPoint;
     }
     return result;
   }
 
+
+
+ private:
+
+  friend bool operator<(const Rational& arg1, const Rational& arg2);
+  friend bool operator==(const Rational& arg1, const Rational& arg2);
+
+  BigInteger numerator_ = 1;
+  BigInteger denominator_ = 1;
+//fast gcd for bigInt;
+  static BigInteger gcd(BigInteger a, BigInteger b) {
+    BigInteger ans = 1;
+    while (a != 0 && b != 0) {
+      if (!a.isEven() && !b.isEven()) {
+        a > b ? a -= b : b -= a;
+      }
+      if (a.isEven() && b.isEven()) {
+        a /= 2;
+        b /= 2;
+        ans *= 2;
+      }
+      if (a.isEven() && !b.isEven()){
+        a/=2;
+      }
+      if (!a.isEven() && b.isEven()){
+        b/=2;
+      }
+    }
+
+    ans *= (a==0) ? b : a;
+    return ans;
+
+  }
+
+  void swap(Rational& num) {
+    std::swap(numerator_, num.numerator_);
+    std::swap(denominator_, num.denominator_);
+  }
+
+  void normalize() {
+
+    if (numerator_.isPositive() == denominator_.isPositive()) {
+      numerator_.makePositive();
+      denominator_.makePositive();
+    } else {
+      numerator_.makeNegative();
+      denominator_.makePositive();
+    }
+    bool sign = !numerator_.isPositive();
+    numerator_.makePositive();
+    BigInteger del = gcd(numerator_, denominator_);
+    numerator_ /= del;
+    denominator_ /= del;
+    if (sign) {
+      numerator_.makeNegative();
+    }
+  }
+
+
 };
+
+
 bool operator<(const Rational& arg1, const Rational& arg2) {
   if (arg1 == arg2) return false;
   else if ((arg1.numerator_.isPositive() == arg1.denominator_.isPositive())
@@ -731,4 +716,12 @@ Rational operator/(const Rational& arg1, const Rational& arg2) {
   Rational copy = arg1;
   copy /= arg2;
   return copy;
+}
+
+std::istream& operator>>(std::istream& in, Rational& num) {
+
+  BigInteger arg;
+  in >> arg;
+  num = Rational(arg);
+  return in;
 }
