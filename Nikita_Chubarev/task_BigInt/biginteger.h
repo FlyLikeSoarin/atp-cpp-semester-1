@@ -65,23 +65,23 @@ public:
     }
 
     BigInteger& operator += (const BigInteger& num_2) {
-        return do_algebra_sum(num_2, 1);
+        return adding_big_int(num_2, 1);
     }
 
     BigInteger& operator -= (const BigInteger& num_2) {
-        return do_algebra_sum(num_2, -1);
+        return adding_big_int(num_2, -1);
     }
 
     BigInteger& operator *= (const BigInteger& num_2) {
-        return do_multiplication(num_2);
+        return multiplication_by_big_int(num_2);
     }
 
     BigInteger& operator /= (const BigInteger& num_2) {
-        return do_division(num_2);
+        return division_by_big_int(num_2);
     }
 
     BigInteger& operator %= (const BigInteger& num_2) {
-        return do_modular_reward(num_2);
+        return modulo_division(num_2);
     }
 
     string toString() const {
@@ -371,7 +371,7 @@ private:
     }
 
 
-    BigInteger& do_algebra_sum(const BigInteger& num_2, int op) {
+    BigInteger& adding_big_int(const BigInteger& num_2, int op) {
         if (sign == op * num_2.sign) {
             add_abs(numbers, numbers, num_2.numbers);
         } else {
@@ -391,14 +391,14 @@ private:
         return *this;
     }
 
-    BigInteger& do_multiplication(const BigInteger& num_2) {
+    BigInteger& multiplication_by_big_int(const BigInteger& num_2) {
         this->sign *= num_2.sign;
         multiply_abs(numbers, numbers, num_2.numbers);
         delete_nulls(numbers);
         return *this;
     }
 
-    BigInteger& do_division(const BigInteger& num_2) {
+    BigInteger& division_by_big_int(const BigInteger& num_2) {
         this->sign *= num_2.sign;
         vector<long long> rest{0};
         divide_abs(numbers, numbers, num_2.numbers, rest);
@@ -409,7 +409,7 @@ private:
         return *this;
     }
 
-    BigInteger& do_modular_reward(const BigInteger& num_2) {
+    BigInteger& modulo_division(const BigInteger& num_2) {
         vector<long long>rest{0};
         divide_abs(numbers, numbers, num_2.numbers, rest);
         numbers = rest;
@@ -531,27 +531,26 @@ public:
         return *this;
     }
     
-    Rational& do_right_rational() {
+    void  do_right_rational() {
         BigInteger nod = euclidean_algorithm((numerator > BigInteger(0) ? numerator  : -numerator), denominator);
         numerator /= nod;
         denominator /= nod;
-        return *this;
     }
 
     Rational& operator += (const Rational& rat_num) {
-        return do_rational_sum(rat_num, 1);
+        return adding_rational(rat_num, 1);
     }
 
     Rational& operator -= (const Rational& rat_num) {
-        return do_rational_sum(rat_num, -1);
+        return adding_rational(rat_num, -1);
     }
 
     Rational& operator *= (const Rational& rat_num) {
-        return do_rational_multiplication(rat_num);
+        return multiplication_by_rational(rat_num);
     }
 
     Rational& operator /= (const Rational& rat_num) {
-        return do_rational_division(rat_num);
+        return division_by_rational(rat_num);
     }
 
     Rational operator - () {
@@ -651,7 +650,7 @@ private:
 
     static const int BASE_SQR = 100000000;
 
-    Rational& do_rational_sum(const Rational& rat, int op) {
+    Rational& adding_rational(const Rational& rat, int op) {
         if (denominator != rat.denominator) {
             numerator *= rat.denominator;
             if (op == 1) {
@@ -680,7 +679,7 @@ private:
         return *this;
     }
 
-    Rational& do_rational_multiplication(const Rational& rat) {
+    Rational& multiplication_by_rational(const Rational& rat) {
         numerator *= rat.numerator;
         denominator *= rat.denominator;
 
@@ -692,7 +691,7 @@ private:
         return *this;
     }
 
-    Rational& do_rational_division(const Rational& rat) {
+    Rational& division_by_rational(const Rational& rat) {
         numerator *= rat.denominator;
         denominator *= (rat.numerator > BigInteger(0) ? rat.numerator : -rat.numerator);
         numerator *= (rat.numerator > BigInteger(0) ? BigInteger(1) : BigInteger(-1));
