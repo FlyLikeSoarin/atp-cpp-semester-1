@@ -17,12 +17,12 @@ class BigInteger {
     static const int BASE = 1000000000;
     static const int BASE_LENGTH = 9;
 
-    static void do_sum_abs(vector<long long>& new_num, const vector<long long>& a, const vector<long long>& b) {
-        //new_num = |a| + |b|
+    static void add_abs(vector<long long>& new_num, const vector<long long>& left, const vector<long long>& right) {
+        //new_num = |left| + |right|
         long long add_to_next = 0;
         size_t i = 0;
-        while (i < a.size() || i < b.size() || add_to_next > 0) {
-            long long x = (i < a.size() ? a[i] : 0) + (i < b.size() ? b[i] : 0) + add_to_next;
+        while (i < left.size() || i < right.size() || add_to_next > 0) {
+            long long x = (i < left.size() ? left[i] : 0) + (i < right.size() ? right[i] : 0) + add_to_next;
             add_to_next = x / BASE;
             if (i >= new_num.size()) {
                 new_num.push_back(0);
@@ -32,12 +32,12 @@ class BigInteger {
         }
     }
 
-    static void do_subtract_abs(vector<long long>& new_num, const vector<long long>& a, const vector<long long>& b) {
-        //new_num = |a| - |b|, |a| >= |b|
+    static void subtract_abs(vector<long long>& new_num, const vector<long long>& left, const vector<long long>& right) {
+        //new_num = |left| - |right|, |left| >= |right|
         long long take_from_next = 0;
         size_t i = 0;
-        while (i < a.size() || take_from_next > 0) {
-            long long x = a[i] - (i < b.size() ? b[i] : 0) - take_from_next;
+        while (i < left.size() || take_from_next > 0) {
+            long long x = left[i] - (i < right.size() ? right[i] : 0) - take_from_next;
             take_from_next = (x < 0 ? 1 : 0);
             if (i >= new_num.size()) {
                 new_num.push_back(0);
@@ -47,13 +47,13 @@ class BigInteger {
         }
     }
 
-    static void do_multiply_abs(vector<long long>& new_num, const vector<long long>& a, const vector<long long>& b) {
+    static void multiply_abs(vector<long long>& new_num, const vector<long long>& left, const vector<long long>& right) {
         long long add_to_next = 0;
         vector<long long> sub_result(new_num.size(), 0);
-        for (size_t i = 0; i < b.size(); ++i) {
+        for (size_t i = 0; i < right.size(); ++i) {
             size_t j = 0;
-            while (j < a.size() || add_to_next > 0) {
-                long long x = (j < a.size() ? a[j] : 0) * b[i] + add_to_next;
+            while (j < left.size() || add_to_next > 0) {
+                long long x = (j < left.size() ? left[j] : 0) * right[i] + add_to_next;
 
                 add_to_next = x / BASE;
                 if (i + j >= sub_result.size()) {
@@ -68,12 +68,12 @@ class BigInteger {
         new_num = sub_result;
     }
 
-    static void do_multiply_abs(vector<long long>& new_num, const vector<long long>& a, long long b) {
+    static void multiply_abs(vector<long long>& new_num, const vector<long long>& left, long long right) {
         long long add_to_next = 0;
 
         size_t j = 0;
-        while (j < a.size() || add_to_next > 0) {
-            long long x = (j < a.size() ? a[j] : 0) * b + add_to_next;
+        while (j < left.size() || add_to_next > 0) {
+            long long x = (j < left.size() ? left[j] : 0) * right + add_to_next;
             add_to_next = x / BASE;
             if (j >= new_num.size()) {
                 new_num.push_back(0);
@@ -87,13 +87,13 @@ class BigInteger {
                              long long max_quotient, vector<long long>& rest) {
         vector<long long> divider_by_median;
         if (max_quotient - min_quotient == 1) {
-            do_multiply_abs(divider_by_median, divider, min_quotient);
-            do_subtract_abs(rest, dividend, divider_by_median);
+            multiply_abs(divider_by_median, divider, min_quotient);
+            subtract_abs(rest, dividend, divider_by_median);
             delete_nulls(rest);
             return min_quotient;
         } else {
             long long median_quotient = (min_quotient + max_quotient) / 2;
-            do_multiply_abs(divider_by_median, divider, median_quotient);
+            multiply_abs(divider_by_median, divider, median_quotient);
             if (cmp_value_abs(dividend, divider_by_median)) {
                 return find_quotient(dividend, divider, min_quotient, median_quotient, rest);
             } else if (cmp_value_abs(divider_by_median, dividend)) {
@@ -105,35 +105,35 @@ class BigInteger {
         }
     }
 
-    static void do_division_abs(vector<long long>& new_num, const vector<long long>& a, const vector<long long>& b, vector<long long>& rest) {
+    static void divide_abs(vector<long long>& new_num, const vector<long long>& left, const vector<long long>& right, vector<long long>& rest) {
         vector<long long> result_num{0};
-        rest = a;
-        if (a.size() >= b.size()) {
-            size_t start_ind_dividend = a.size() - b.size() + 1;
-            size_t end_ind_dividend = a.size();
-            vector<long long> sub_num = vector<long long>(a.begin() + long(start_ind_dividend - 1),
-                                              a.begin() + long(end_ind_dividend));
-            if (cmp_value_abs(sub_num, b)) {
+        rest = left;
+        if (left.size() >= right.size()) {
+            size_t start_ind_dividend = left.size() - right.size() + 1;
+            size_t end_ind_dividend = left.size();
+            vector<long long> sub_num = vector<long long>(left.begin() + long(start_ind_dividend - 1),
+                                              left.begin() + long(end_ind_dividend));
+            if (cmp_value_abs(sub_num, right)) {
                 --start_ind_dividend;
                 if (start_ind_dividend != 0) {
-                    sub_num.insert(sub_num.begin(), a[start_ind_dividend - 1]);
+                    sub_num.insert(sub_num.begin(), left[start_ind_dividend - 1]);
                 }
             }
-            size_t len_result_num = a.size() - (end_ind_dividend - start_ind_dividend);
+            size_t len_result_num = left.size() - (end_ind_dividend - start_ind_dividend);
             if (len_result_num != 0) {
                 result_num = vector<long long>(len_result_num, 0);
             }
             while (start_ind_dividend > 0) {
                 delete_nulls(sub_num);
-                if (!cmp_value_abs(sub_num, b)) {
+                if (!cmp_value_abs(sub_num, right)) {
                     rest.clear();
-                    result_num[start_ind_dividend - 1] = find_quotient(sub_num, b, 1, BASE, rest);
+                    result_num[start_ind_dividend - 1] = find_quotient(sub_num, right, 1, BASE, rest);
                     sub_num.clear();
                     sub_num.insert(sub_num.begin(), rest.begin(), rest.end());
                 }
                 --start_ind_dividend;
                 if (start_ind_dividend > 0) {
-                    sub_num.insert(sub_num.begin(), a[start_ind_dividend - 1]);
+                    sub_num.insert(sub_num.begin(), left[start_ind_dividend - 1]);
                 }
             }
         }
@@ -152,56 +152,56 @@ class BigInteger {
         else return 0;
     }
 
-    static bool cmp_value(const BigInteger& num_1, const BigInteger& num_2) {
-        if (num_1.sign != num_2.sign) {
-            return num_1.sign < num_2.sign;
+    static bool cmp_value(const BigInteger& left, const BigInteger& right) {
+        if (left.sign != right.sign) {
+            return left.sign < right.sign;
         }
-        bool both_are_negative = (num_1.sign == -1);
-        return both_are_negative != cmp_value_abs(num_1, num_2);
+        bool both_are_negative = (left.sign == -1);
+        return both_are_negative != cmp_value_abs(left, right);
     }
 
-    static bool cmp_value_abs(const BigInteger& a, const BigInteger& b) {
-        size_t l_a = a.numbers.size();
-        size_t l_b = b.numbers.size();
-        if (l_a != l_b) {
-            return l_a < l_b;
+    static bool cmp_value_abs(const BigInteger& left, const BigInteger& right) {
+        size_t l_left = left.numbers.size();
+        size_t l_right = right.numbers.size();
+        if (l_left != l_right) {
+            return l_left < l_right;
         }
-        for (size_t ind = 1; ind <= l_a; ++ind) {
-            if (a.numbers[l_a - ind] != b.numbers[l_b - ind]) {
-                return (a.numbers[l_a - ind] < b.numbers[l_b - ind]);
+        for (size_t ind = 1; ind <= l_left; ++ind) {
+            if (left.numbers[l_left - ind] != right.numbers[l_right - ind]) {
+                return (left.numbers[l_left - ind] < right.numbers[l_right - ind]);
             }
         }
         return false;
     }
 
-    static bool cmp_value_abs(const vector<long long>& a, const vector<long long>& b) {
-        size_t l_a = a.size();
-        size_t l_b = b.size();
-        if (l_a != l_b) {
-            return l_a < l_b;
+    static bool cmp_value_abs(const vector<long long>& left, const vector<long long>& right) {
+        size_t l_left = left.size();
+        size_t l_right = right.size();
+        if (l_left != l_right) {
+            return l_left < l_right;
         }
-        for (size_t ind = 1; ind <= l_a; ++ind) {
-            if (a[l_a - ind] != b[l_b - ind]) {
-                return (a[l_a - ind] < b[l_b - ind]);
+        for (size_t ind = 1; ind <= l_left; ++ind) {
+            if (left[l_left - ind] != right[l_right - ind]) {
+                return (left[l_left - ind] < right[l_right - ind]);
             }
         }
         return false;
     }
 
-    static const BigInteger& max(const BigInteger& a, const BigInteger& b,
+    static const BigInteger& max(const BigInteger& left, const BigInteger& right,
                                  bool cmp(const BigInteger&, const BigInteger&)) {
-        if (cmp(a, b)) {
-            return b;
+        if (cmp(left, right)) {
+            return right;
         }
-        return a;
+        return left;
     }
 
-    static const BigInteger& min(const BigInteger& a, const BigInteger& b,
+    static const BigInteger& min(const BigInteger& left, const BigInteger& right,
                                  bool cmp(const BigInteger&, const BigInteger&)) {
-        if (cmp(a, b)) {
-            return a;
+        if (cmp(left, right)) {
+            return left;
         }
-        return b;
+        return right;
     }
 
     static void delete_nulls(vector<long long>& num) {
@@ -213,7 +213,7 @@ class BigInteger {
 
     BigInteger& do_algebra_sum(const BigInteger& num_2, int op) {
         if (sign == op * num_2.sign) {
-            do_sum_abs(numbers, numbers, num_2.numbers);
+            add_abs(numbers, numbers, num_2.numbers);
         } else {
             const BigInteger& max_num = max(*this, num_2, cmp_value_abs);
             const BigInteger& min_num = min(*this, num_2, cmp_value_abs);
@@ -222,7 +222,7 @@ class BigInteger {
             } else {
                 sign = max_num.sign;
             }
-            do_subtract_abs(numbers, max_num.numbers, min_num.numbers);
+            subtract_abs(numbers, max_num.numbers, min_num.numbers);
             delete_nulls(numbers);
             if (numbers.back() == 0) {
                 sign = 0;
@@ -231,9 +231,9 @@ class BigInteger {
         return *this;
     }
 
-    BigInteger& do_multiply(const BigInteger& num_2) {
+    BigInteger& do_multiplication(const BigInteger& num_2) {
         this->sign *= num_2.sign;
-        do_multiply_abs(numbers, numbers, num_2.numbers);
+        multiply_abs(numbers, numbers, num_2.numbers);
         delete_nulls(numbers);
         return *this;
     }
@@ -241,7 +241,7 @@ class BigInteger {
     BigInteger& do_division(const BigInteger& num_2) {
         this->sign *= num_2.sign;
         vector<long long> rest{0};
-        do_division_abs(numbers, numbers, num_2.numbers, rest);
+        divide_abs(numbers, numbers, num_2.numbers, rest);
         delete_nulls(numbers);
         if (numbers.back() == 0) {
             sign = 0;
@@ -249,9 +249,9 @@ class BigInteger {
         return *this;
     }
 
-    BigInteger& do_modulo_rest(const BigInteger& num_2) {
+    BigInteger& do_modular_reward(const BigInteger& num_2) {
         vector<long long>rest{0};
-        do_division_abs(numbers, numbers, num_2.numbers, rest);
+        divide_abs(numbers, numbers, num_2.numbers, rest);
         numbers = rest;
         if (rest.size() == 1 && rest[0] == 0) {
             sign = 0;
@@ -318,7 +318,7 @@ public:
     }
 
     BigInteger& operator *= (const BigInteger& num_2) {
-        return do_multiply(num_2);
+        return do_multiplication(num_2);
     }
 
     BigInteger& operator /= (const BigInteger& num_2) {
@@ -326,7 +326,7 @@ public:
     }
 
     BigInteger& operator %= (const BigInteger& num_2) {
-        return do_modulo_rest(num_2);
+        return do_modular_reward(num_2);
     }
 
     string toString() const {
@@ -524,7 +524,7 @@ class Rational {
         return *this;
     }
 
-    Rational& do_multiply(const Rational& rat) {
+    Rational& do_rational_multiplication(const Rational& rat) {
         numerator *= rat.numerator;
         denominator *= rat.denominator;
 
@@ -536,7 +536,7 @@ class Rational {
         return *this;
     }
 
-    Rational& do_division(const Rational& rat) {
+    Rational& do_rational_division(const Rational& rat) {
         numerator *= rat.denominator;
         denominator *= (rat.numerator > BigInteger(0) ? rat.numerator : -rat.numerator);
         numerator *= (rat.numerator > BigInteger(0) ? BigInteger(1) : BigInteger(-1));
@@ -611,11 +611,11 @@ public:
     }
 
     Rational& operator *= (const Rational& rat_num) {
-        return do_multiply(rat_num);
+        return do_rational_multiplication(rat_num);
     }
 
     Rational& operator /= (const Rational& rat_num) {
-        return do_division(rat_num);
+        return do_rational_division(rat_num);
     }
 
     Rational operator - () {
