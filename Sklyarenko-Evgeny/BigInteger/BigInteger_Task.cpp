@@ -49,7 +49,7 @@ class BigInteger {
     }
     return *this;
   }
-  bool abs_compare_lower(const BigInteger &num) const {
+  bool is_abs_compare_lower(const BigInteger &num) const {
     if (arr.size() != num.arr.size()) {return arr.size() < num.arr.size();}
     for (int i = arr.size() - 1; i >= 0; --i) {
       if (arr[i] != num.arr[i]) {return arr[i] < num.arr[i];}
@@ -62,8 +62,8 @@ class BigInteger {
   bool operator>(const BigInteger &num) const {
     if (!num.is_negative && is_negative) return false;
     if (num.is_negative && !is_negative) return true;
-    if (num.is_negative && is_negative) return abs_compare_lower(num);
-    return !abs_compare_lower(num);
+    if (num.is_negative && is_negative) return is_abs_compare_lower(num);
+    return !is_abs_compare_lower(num);
   }
   bool operator<(const BigInteger &num) const {
     return !((*this == num) || (*this > num));
@@ -114,7 +114,7 @@ class BigInteger {
         addible = (num1 + num2 + addible) / base;
         if ((i >= int(num.arr.size()) - 1) && (addible == 0)) break;
       }
-    } else if (abs_compare_lower(num)) {
+    } else if (is_abs_compare_lower(num)) {
       is_negative = !is_negative;
       long long addible = 0;
       for (int i = 0; i < int(num.arr.size()); ++i) {
@@ -161,7 +161,7 @@ class BigInteger {
         addible = (num1 + num2 + addible) / base;
         if ((i >= int(num.arr.size()) - 1) && (addible == 0)) break;
       }
-    } else if (abs_compare_lower(num)) {
+    } else if (is_abs_compare_lower(num)) {
       is_negative = !is_negative;
       long long addible = 0;
       for (int i = 0; i < int(num.arr.size()); ++i) {
