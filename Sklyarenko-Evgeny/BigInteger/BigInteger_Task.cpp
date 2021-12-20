@@ -1,6 +1,7 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include <algorithm>
 
 using std::vector;
 using std::string;
@@ -8,27 +9,15 @@ using std::string;
 int base = 1e9;
 
 class BigInteger {
- private:
-  vector<int> arr;
-  bool is_negative = false;
  public:
   [[nodiscard]] bool is_minus() const {
     return is_negative;
   }
   void remove_zeros() {
-    while (this->arr.size() > 1 && this->arr.back() == 0) {
-      this->arr.pop_back();
+    while (arr.size() > 1 && arr.back() == 0) {
+      arr.pop_back();
     }
-    if (this->arr.size() == 1 && this->arr.back() == 0) this->is_negative = false;
-  }
-  void change_row() {
-    if (arr.empty()) {
-      arr.push_back(0);
-      return;
-    }
-    arr.push_back(arr.back());
-    for (int i = int(arr.size()) - 2; i > 0; --i) arr[i] = arr[i - 1];
-    arr[0] = 0;
+    if (arr.size() == 1 && arr.back() == 0) is_negative = false;
   }
   BigInteger() {
     arr.push_back(0);
@@ -49,7 +38,7 @@ class BigInteger {
   }
   BigInteger operator-() const {
     BigInteger tmp = *this;
-    tmp.is_negative = (this->is_negative + 1) % 2;
+    tmp.is_negative = !is_negative;
     tmp.remove_zeros();
     return tmp;
   }
@@ -60,14 +49,10 @@ class BigInteger {
     }
     return *this;
   }
-  bool abs_compare_lower(const BigInteger &num) const {
-    if (this->arr.size() < num.arr.size()) return false;
-    else if (this->arr.size() > num.arr.size()) return true;
-    else {
-      for (int i = int(num.arr.size()) - 1; i > -1; --i) {
-        if (this->arr[i] > num.arr[i]) return true;
-        else if (this->arr[i] < num.arr[i]) return false;
-      }
+  bool is_abs_compare_lower(const BigInteger &num) const {
+    if (arr.size() != num.arr.size()) {return arr.size() < num.arr.size();}
+    for (int i = arr.size() - 1; i >= 0; --i) {
+      if (arr[i] != num.arr[i]) {return arr[i] < num.arr[i];}
     }
     return true;
   }
@@ -75,28 +60,10 @@ class BigInteger {
     return !(num == *this);
   }
   bool operator>(const BigInteger &num) const {
-    if (this->is_negative && !num.is_negative) return false;
-    else if (!this->is_negative && num.is_negative) return true;
-    else if (this->is_negative && num.is_negative) {
-      if (this->arr.size() > num.arr.size()) return false;
-      else if (this->arr.size() < num.arr.size()) return true;
-      else {
-        for (int i = int(num.arr.size() - 1); i > -1; --i) {
-          if (this->arr[i] > num.arr[i]) return false;
-          else if (this->arr[i] < num.arr[i]) return true;
-        }
-      }
-    } else {
-      if (this->arr.size() < num.arr.size()) return false;
-      else if (this->arr.size() > num.arr.size()) return true;
-      else {
-        for (int i = int(num.arr.size()) - 1; i > -1; --i) {
-          if (this->arr[i] > num.arr[i]) return true;
-          else if (this->arr[i] < num.arr[i]) return false;
-        }
-      }
-    }
-    return false;
+    if (!num.is_negative && is_negative) return false;
+    if (num.is_negative && !is_negative) return true;
+    if (num.is_negative && is_negative) return is_abs_compare_lower(num);
+    return !is_abs_compare_lower(num);
   }
   bool operator<(const BigInteger &num) const {
     return !((*this == num) || (*this > num));
@@ -110,8 +77,8 @@ class BigInteger {
   [[nodiscard]] string toString() const {
     string s;
     if (is_negative) s += '-';
-    for (int i = int(this->arr.size()) - 1; i > -1; --i) {
-      string tmp = std::to_string(this->arr[i]);
+    for (int i = int(arr.size()) - 1; i > -1; --i) {
+      string tmp = std::to_string(arr[i]);
       if (tmp.size() < 9 && i != int(arr.size()) - 1) {
         while (tmp.size() < 9) tmp = '0' + tmp;
       }
@@ -120,606 +87,184 @@ class BigInteger {
     return s;
   }
   BigInteger &operator*=(const BigInteger &num) {
-    vector<int> result;
-    result.resize(arr.size() + num.arr.size());
-    for (int i = 0; i < int(arr.size()); ++i) {
-      int addible = 0;
-      for (int j = 0; j < int(num.arr.size()) || addible != 0; ++j) {
-        long long current = result[i + j] + arr[i] * 1LL * (j < int(num.arr.size()) ? num.arr[j] : 0) + addible;
-        result[i + j] = static_cast<int>(current % base);
-        addible = static_cast<int>(current / base);
+    is_negative = (is_negative + num.is_negative) % 2;
+    vector<long long> numbers(arr.size() + num.arr.size());
+    for (int i = 0; i < int(num.arr.size()); ++i) {
+      for (int j = 0; j < int(arr.size()); ++j) {
+        numbers[i + j] += arr[j] * num.arr[i];
+        numbers[i + j + 1] += numbers[i + j] / base;
+        numbers[i + j] %= base;
       }
     }
-    this->arr = result;
-    this->is_negative = (this->is_negative + num.is_negative) % 2;
-    this->remove_zeros();
+    arr = numbers;
+    remove_zeros();
     return *this;
   }
   BigInteger &operator+=(const BigInteger &num) {
-    if (num.is_negative && !this->is_negative) {
-      int tmp;
-      int addible = 0;
-      if (!abs_compare_lower(num)) {
-        std::vector<int> sp_change = num.arr;
-        for (int i = 0; i < int(num.arr.size()); ++i) {
-          if (i < int(this->arr.size())) {
-            tmp = sp_change[i] - this->arr[i];
-            if (tmp - addible < 0) {
-              if (i != int(sp_change.size()) - 1) {
-                tmp -= addible;
-                tmp += base;
-              } else {
-                tmp = -(tmp - addible);
-              }
-              addible = 1;
-              sp_change[i] = tmp;
-            } else {
-              sp_change[i] = tmp - addible;
-              addible = 0;
-            }
-          } else if (addible != 0) {
-            tmp = sp_change[i] - addible;
-            if (tmp < 0) {
-              if (i != int(sp_change.size()) - 1) {
-                tmp += base;
-              }
-              else {
-                tmp = -tmp;
-              }
-              sp_change[i] = tmp;
-            } else {
-              sp_change[i] = tmp;
-              addible = 0;
-            }
-          }
+    if (!((is_negative + num.is_negative)) % 2) {
+      long long addible = 0;
+      int size = std::max(int(arr.size()), int(num.arr.size())) + 1;
+      for (int i = 0; i < size; ++i) {
+        if (i >= int(arr.size())) {
+          arr.push_back(0);
         }
-        this->arr = sp_change;
-        this->is_negative = true;
-      } else {
-        for (int i = 0; i < int(this->arr.size()); ++i) {
-          if (i < int(num.arr.size())) {
-            tmp = this->arr[i] - num.arr[i];
-            if (tmp - addible < 0) {
-              if (i != int(arr.size()) - 1) {
-                tmp -= addible;
-                tmp += base;
-              } else {
-                tmp = -(tmp - addible);
-              }
-              addible = 1;
-              this->arr[i] = tmp;
-            } else {
-              this->arr[i] = tmp - addible;
-              addible = 0;
-            }
-          } else if (addible != 0) {
-            tmp = this->arr[i] - addible;
-            if (tmp < 0) {
-              if (i != int(arr.size()) - 1) {
-                tmp += base;
-              } else {
-                tmp = -tmp;
-              }
-              this->arr[i] = tmp;
-            } else {
-              this->arr[i] = tmp;
-              addible = 0;
-            }
-          }
+        long long num1 = arr[i];
+        long long num2 = (i < int(num.arr.size()) ? num.arr[i] : 0);
+        arr[i] = (num1 + num2 + addible) % base;
+        addible = (num1 + num2 + addible) / base;
+        if ((i >= int(num.arr.size()) - 1) && (addible == 0)) break;
+      }
+    } else if (is_abs_compare_lower(num)) {
+      is_negative = !is_negative;
+      long long addible = 0;
+      for (int i = 0; i < int(num.arr.size()); ++i) {
+        if (i >= int(arr.size())) arr.push_back(0);
+        if (num.arr[i] >= arr[i] + addible) {
+          arr[i] = num.arr[i] - arr[i] - addible;
+          addible = 0;
+        }
+        else {
+          arr[i] = base + num.arr[i] - arr[i] - addible;
+          addible = 1;
         }
       }
-    } else if (num.is_negative && this->is_negative) {
-      long long tmp;
-      int addible = 0;
-      if (!(abs_compare_lower(num))) {
-        for (int i = 0; i < int(this->arr.size()); ++i) {
-          tmp = this->arr[i] + num.arr[i];
-          if (tmp + addible >= base) {
-            this->arr[i] = int((tmp + addible) % base);
-            addible = 1;
-          } else {
-            this->arr[i] = int(tmp + addible);
-            addible = 0;
-          }
+    }
+    else {
+      long long addible = 0;
+      for (int i = 0; i < int(arr.size()); ++i) {
+        if ((i >= int(num.arr.size())) && (addible == 0)) break;
+        long long num1 = (i < int(num.arr.size()) ? num.arr[i] : 0);
+        if (arr[i] >= num1 + addible) {
+          arr[i] = arr[i] - num1 - addible;
+          addible = 0;
         }
-        size_t i = arr.size();
-        while (addible != 0) {
-          if (i >= num.arr.size()) {
-            arr.push_back(addible);
-            addible = 0;
-          }
-          else {
-            tmp = num.arr[i] + addible;
-            if (tmp >= base) {
-              arr.push_back(int(tmp % base));
-            } else {
-              arr.push_back(int(tmp));
-              addible = 0;
-            }
-          }
-          ++i;
-        }
-        while (i < num.arr.size()) {
-          arr.push_back(num.arr[i]);
-          ++i;
-        }
-      } else {
-        for (int i = 0; i < int(num.arr.size()); ++i) {
-          tmp = this->arr[i] + num.arr[i];
-          if (tmp + addible >= base) {
-            this->arr[i] = int((tmp + addible) % base);
-            addible = 1;
-          } else {
-            this->arr[i] = int(tmp + addible);
-            addible = 0;
-          }
-        }
-        size_t i = num.arr.size();
-        while (addible != 0) {
-          if (i >= arr.size()) {
-            arr.push_back(addible);
-            addible = 0;
-          } else {
-            tmp = arr[i] + addible;
-            if (tmp >= base) {
-              arr[i] = int(tmp % base);
-            } else {
-              arr[i] = int(tmp);
-              addible = 0;
-            }
-          }
-          ++i;
-        }
-      }
-    } else if (!num.is_negative && this->is_negative) {
-      if (!abs_compare_lower(num)) {
-        this->is_negative = false;
-      }
-      int tmp;
-      int addible = 0;
-      if (!(abs_compare_lower(num))) {
-        std::vector<int> sp_change = num.arr;
-        for (int i = 0; i < int(num.arr.size()); ++i) {
-          if (i < int(this->arr.size())) {
-            tmp = sp_change[i] - this->arr[i];
-            if (tmp - addible < 0) {
-              if (i != int(sp_change.size()) - 1) {
-                tmp -= addible;
-                tmp += base;
-              } else {
-                tmp = -(tmp - addible);
-              }
-              addible = 1;
-              sp_change[i] = tmp;
-            } else {
-              sp_change[i] = tmp - addible;
-              addible = 0;
-            }
-          } else if (addible != 0) {
-            tmp = sp_change[i] - addible;
-            if (tmp < 0) {
-              if (i != int(sp_change.size()) - 1) {
-                tmp += base;
-              } else {
-                tmp = -tmp;
-              }
-              sp_change[i] = tmp;
-            } else {
-              sp_change[i] = tmp;
-              addible = 0;
-            }
-          }
-        }
-        this->arr = sp_change;
-      } else {
-        for (int i = 0; i < int(this->arr.size()); ++i) {
-          if (i < int(num.arr.size())) {
-            tmp = this->arr[i] - num.arr[i];
-            if (tmp - addible < 0) {
-              if (i != int(arr.size()) - 1) {
-                tmp -= addible;
-                tmp += base;
-              } else {
-                tmp = -(tmp - addible);
-              }
-              addible = 1;
-              this->arr[i] = tmp;
-            } else {
-              this->arr[i] = tmp - addible;
-              addible = 0;
-            }
-          } else if (addible != 0) {
-            tmp = this->arr[i] - addible;
-            if (tmp < 0) {
-              if (i != int(arr.size()) - 1) {
-                tmp += base;
-              } else {
-                tmp = -tmp;
-              }
-              this->arr[i] = tmp;
-            } else {
-              this->arr[i] = tmp;
-              addible = 0;
-            }
-          }
-        }
-      }
-    } else {
-      long long tmp;
-      int addible = 0;
-      if (!(abs_compare_lower(num))) {
-        for (int i = 0; i < int(this->arr.size()); ++i) {
-          tmp = this->arr[i] + num.arr[i];
-          if (tmp + addible >= base) {
-            this->arr[i] = int((tmp + addible) % base);
-            addible = 1;
-          } else {
-            this->arr[i] = int(tmp + addible);
-            addible = 0;
-          }
-        }
-        size_t i = arr.size();
-        while (addible != 0) {
-          if (i >= num.arr.size()) {
-            arr.push_back(addible);
-            addible = 0;
-          }
-          else {
-            tmp = num.arr[i] + addible;
-            if (tmp >= base) {
-              arr.push_back(int(tmp % base));
-            } else {
-              arr.push_back(int(tmp));
-              addible = 0;
-            }
-          }
-          ++i;
-        }
-        while (i < num.arr.size()) {
-          arr.push_back(num.arr[i]);
-          ++i;
-        }
-      } else {
-        for (int i = 0; i < int(num.arr.size()); ++i) {
-          tmp = this->arr[i] + num.arr[i];
-          if (tmp + addible >= base) {
-            this->arr[i] = int((tmp + addible) % base);
-            addible = 1;
-          } else {
-            this->arr[i] = int(tmp + addible);
-            addible = 0;
-          }
-        }
-        size_t i = num.arr.size();
-        while (addible != 0) {
-          if (i >= arr.size()) {
-            arr.push_back(addible);
-            addible = 0;
-          } else {
-            tmp = arr[i] + addible;
-            if (tmp >= base) {
-              arr[i] = int(tmp % base);
-            } else {
-              arr[i] = int(tmp);
-              addible = 0;
-            }
-          }
-          ++i;
+        else {
+          arr[i] = base + arr[i] - num1 - addible;
+          addible = 1;
         }
       }
     }
     remove_zeros();
     return *this;
   }
-  BigInteger &operator-=(const BigInteger &num) {
-    if (num.is_negative && !this->is_negative) {
-      long long tmp;
-      int addible = 0;
-      if (!(abs_compare_lower(num))) {
-        for (int i = 0; i < int(this->arr.size()); ++i) {
-          tmp = this->arr[i] + num.arr[i];
-          if (tmp + addible >= base) {
-            this->arr[i] = int((tmp + addible) % base);
-            addible = 1;
-          } else {
-            this->arr[i] = int(tmp + addible);
-            addible = 0;
-          }
+  BigInteger& operator-=(const BigInteger& num) {
+    if (((is_negative + num.is_negative)) % 2) {
+      long long addible = 0;
+      int size = std::max(int(arr.size()), int(num.arr.size())) + 1;
+      for (int i = 0; i < size; ++i) {
+        if (i >= int(arr.size())) {
+          arr.push_back(0);
         }
-        size_t i = arr.size();
-        while (addible != 0) {
-          if (i >= num.arr.size()) {
-            arr.push_back(addible);
-            addible = 0;
-          }
-          else {
-            tmp = num.arr[i] + addible;
-            if (tmp >= base) {
-              arr.push_back(int(tmp % base));
-            } else {
-              arr.push_back(int(tmp));
-              addible = 0;
-            }
-          }
-          ++i;
+        long long num1 = arr[i];
+        long long num2 = (i < int(num.arr.size()) ? num.arr[i] : 0);
+        arr[i] = (num1 + num2 + addible) % base;
+        addible = (num1 + num2 + addible) / base;
+        if ((i >= int(num.arr.size()) - 1) && (addible == 0)) break;
+      }
+    } else if (is_abs_compare_lower(num)) {
+      is_negative = !is_negative;
+      long long addible = 0;
+      for (int i = 0; i < int(num.arr.size()); ++i) {
+        if (i >= int(arr.size())) arr.push_back(0);
+        if (num.arr[i] >= arr[i] + addible) {
+          arr[i] = num.arr[i] - arr[i] - addible;
+          addible = 0;
         }
-        while (i < num.arr.size()) {
-          arr.push_back(num.arr[i]);
-          ++i;
-        }
-      } else {
-        for (int i = 0; i < int(num.arr.size()); ++i) {
-          tmp = this->arr[i] + num.arr[i];
-          if (tmp + addible >= base) {
-            this->arr[i] = int((tmp + addible) % base);
-            addible = 1;
-          } else {
-            this->arr[i] = int(tmp + addible);
-            addible = 0;
-          }
-        }
-        size_t i = num.arr.size();
-        while (addible != 0) {
-          if (i >= arr.size()) {
-            arr.push_back(addible);
-            addible = 0;
-          } else {
-            tmp = arr[i] + addible;
-            if (tmp >= base) {
-              arr[i] = int(tmp % base);
-            } else {
-              arr[i] = int(tmp);
-              addible = 0;
-            }
-          }
-          ++i;
+        else {
+          arr[i] = base + num.arr[i] - arr[i] - addible;
+          addible = 1;
         }
       }
-    } else if (num.is_negative && this->is_negative) {
-      if (!abs_compare_lower(num)) {
-        this->is_negative = false;
-      }
-      int tmp;
-      int addible = 0;
-      if (!abs_compare_lower(num)) {
-        std::vector<int> sp_change = num.arr;
-        for (int i = 0; i < int(num.arr.size()); ++i) {
-          if (i < int(this->arr.size())) {
-            tmp = sp_change[i] - this->arr[i];
-            if (tmp - addible < 0) {
-              if (i != int(arr.size()) - 1) {
-                tmp -= addible;
-                tmp += base;
-              } else {
-                tmp = -(tmp - addible);
-              }
-              addible = 1;
-              sp_change[i] = tmp;
-            } else {
-              sp_change[i] = tmp - addible;
-              addible = 0;
-            }
-          } else if (addible != 0) {
-            tmp = sp_change[i] - addible;
-            if (tmp < 0) {
-              if (i != int(sp_change.size()) - 1) {
-                tmp += base;
-              } else {
-                tmp = -tmp;
-              }
-              sp_change[i] = tmp;
-            } else {
-              sp_change[i] = tmp;
-              addible = 0;
-            }
-          }
+    }
+    else {
+      long long addible = 0;
+      for (int i = 0; i < int(arr.size()); ++i) {
+        if ((i >= int(num.arr.size())) && (addible == 0)) break;
+        long long num1 = (i < int(num.arr.size()) ? num.arr[i] : 0);
+        if (arr[i] >= num1 + addible) {
+          arr[i] = arr[i] - num1 - addible;
+          addible = 0;
         }
-        this->arr = sp_change;
-      } else {
-        for (int i = 0; i < int(this->arr.size()); ++i) {
-          if (i < int(num.arr.size())) {
-            tmp = this->arr[i] - num.arr[i];
-            if (tmp - addible < 0) {
-              if (i != int(arr.size()) - 1) {
-                tmp -= addible;
-                tmp += base;
-              } else {
-                tmp = -(tmp - addible);
-              }
-              addible = 1;
-              this->arr[i] = tmp;
-            } else {
-              this->arr[i] = tmp - addible;
-              addible = 0;
-            }
-          } else if (addible != 0) {
-            tmp = this->arr[i] - addible;
-            if (tmp < 0) {
-              if (i != int(arr.size()) - 1) {
-                tmp += base;
-              } else {
-                tmp = -tmp;
-              }
-              this->arr[i] = tmp;
-            } else {
-              this->arr[i] = tmp;
-              addible = 0;
-            }
-          }
-        }
-      }
-    } else if (!num.is_negative && this->is_negative) {
-      long long tmp;
-      int addible = 0;
-      if (!(abs_compare_lower(num))) {
-        for (int i = 0; i < int(this->arr.size()); ++i) {
-          tmp = this->arr[i] + num.arr[i];
-          if (tmp + addible >= base) {
-            this->arr[i] = int((tmp + addible) % base);
-            addible = 1;
-          } else {
-            this->arr[i] = int(tmp + addible);
-            addible = 0;
-          }
-        }
-        size_t i = arr.size();
-        while (addible != 0) {
-          if (i >= num.arr.size()) {
-            arr.push_back(addible);
-            addible = 0;
-          }
-          else {
-            tmp = num.arr[i] + addible;
-            if (tmp >= base) {
-              arr.push_back(int(tmp % base));
-            } else {
-              arr.push_back(int(tmp));
-              addible = 0;
-            }
-          }
-          ++i;
-        }
-        while (i < num.arr.size()) {
-          arr.push_back(num.arr[i]);
-          ++i;
-        }
-      } else {
-        for (int i = 0; i < int(num.arr.size()); ++i) {
-          tmp = this->arr[i] + num.arr[i];
-          if (tmp + addible >= base) {
-            this->arr[i] = int((tmp + addible) % base);
-            addible = 1;
-          } else {
-            this->arr[i] = int(tmp + addible);
-            addible = 0;
-          }
-        }
-        size_t i = num.arr.size();
-        while (addible != 0) {
-          if (i >= arr.size()) {
-            arr.push_back(addible);
-            addible = 0;
-          } else {
-            tmp = arr[i] + addible;
-            if (tmp >= base) {
-              arr[i] = int(tmp % base);
-            } else {
-              arr[i] = int(tmp);
-              addible = 0;
-            }
-          }
-          ++i;
-        }
-      }
-    } else {
-      int tmp;
-      int addible = 0;
-      if (!(abs_compare_lower(num))) {
-        std::vector<int> sp_change = num.arr;
-        for (int i = 0; i < int(num.arr.size()); ++i) {
-          if (i < int(this->arr.size())) {
-            tmp = sp_change[i] - this->arr[i];
-            if (tmp - addible < 0) {
-              if (i != int(sp_change.size()) - 1) {
-                tmp -= addible;
-                tmp += base;
-              } else {
-                tmp = -(tmp - addible);
-              }
-              addible = 1;
-              sp_change[i] = tmp;
-            } else {
-              sp_change[i] = tmp - addible;
-              addible = 0;
-            }
-          } else if (addible != 0) {
-            tmp = sp_change[i] - addible;
-            if (tmp < 0) {
-              if (i != int(sp_change.size()) - 1) {
-                tmp += base;
-              } else {
-                tmp = -tmp;
-              }
-              sp_change[i] = tmp;
-            } else {
-              sp_change[i] = tmp;
-              addible = 0;
-            }
-          }
-        }
-        this->arr = sp_change;
-        this->is_negative = true;
-      } else {
-        for (int i = 0; i < int(this->arr.size()); ++i) {
-          if (i < int(num.arr.size())) {
-            tmp = this->arr[i] - num.arr[i];
-            if (tmp - addible < 0) {
-              if (i != int(arr.size()) - 1) {
-                tmp -= addible;
-                tmp += base;
-              } else {
-                tmp = -(tmp - addible);
-              }
-              addible = 1;
-              this->arr[i] = tmp;
-            } else {
-              this->arr[i] = tmp - addible;
-              addible = 0;
-            }
-          } else if (addible != 0) {
-            tmp = this->arr[i] - addible;
-            if (tmp < 0) {
-              if (i != int(arr.size()) - 1) {
-                tmp += base;
-              } else {
-                tmp = -tmp;
-              }
-              this->arr[i] = tmp;
-            } else {
-              this->arr[i] = tmp;
-              addible = 0;
-            }
-          }
+        else {
+          arr[i] = base + arr[i] - num1 - addible;
+          addible = 1;
         }
       }
     }
     remove_zeros();
     return *this;
+  }
+  vector<long long> unsigned_del_of_two_numbers(const BigInteger& num) {
+    bool flag = (is_negative + num.is_negative) % 2;
+    vector<long long> tmp(num.arr.size());
+    vector<long long> result(arr.size());
+    vector<long long> counter;
+    long long ub = 0;
+    long long bb = 0;
+    long long cb = 0;
+    for (size_t i = 0; i < arr.size(); ++i) {
+      tmp.insert(tmp.begin(), arr[arr.size() - 1 - i]);
+      tmp[tmp.size() - 2] += tmp[tmp.size() - 1] * base;
+      tmp.pop_back();
+      ub = tmp[tmp.size() - 1] / num.arr[num.arr.size() - 1];
+      bb = tmp[tmp.size() - 1] / (num.arr[num.arr.size() - 1] + 1);
+      cb = (ub + bb) / 2;
+      while (ub != bb) {
+        counter = tmp;
+        for (size_t j = 0; j < num.arr.size(); ++j) {
+          counter[j] -= cb * num.arr[j];
+          if (counter[j] < 0) {
+            if (j != num.arr.size() - 1) {
+              counter[j + 1] -= std::abs(counter[j]) / base;
+              if (std::abs(counter[j]) % base) --counter[j + 1];
+              counter[j] %= base;
+              counter[j] += base;
+            }
+          }
+        }
+        if (counter[num.arr.size() - 1] < 0) {
+          if (ub - bb == 1) ub = bb;
+          else {
+            ub = cb;
+            cb = (bb + ub) / 2;
+          }
+        }
+        else {
+          if (ub - bb == 1) {
+            if (cb == ub) bb = ub;
+            else cb = ub;
+          }
+          else {
+            bb = cb;
+            cb = (bb + ub) / 2;
+          }
+        }
+      }
+      result[i] = bb;
+      for (size_t j = 0; j < num.arr.size(); ++j) {
+        tmp[j] -= bb * num.arr[j];
+        if (tmp[j] < 0) {
+          tmp[j + 1] -= std::abs(tmp[j]) / base;
+          if (std::abs(tmp[j]) % base != 0) --tmp[j + 1];
+          tmp[j] %= base;
+          tmp[j] += base;
+        }
+      }
+    }
+    std::reverse(result.begin(), result.end());
+    arr = result;
+    is_negative = flag;
+    return tmp;
   }
   BigInteger &operator/=(const BigInteger &num) {
-    if (num == 0) return const_cast<BigInteger &>(num);
-    BigInteger tmp = num;
-    tmp.is_negative = false;
-    vector<int> result(arr.size());
-    BigInteger current;
-    for (int i = int(arr.size()) - 1; i >= 0; --i) {
-      current.change_row();
-      current.arr[0] = arr[i];
-      current.remove_zeros();
-      int t = 0, l = 0, r = base;
-      while (r >= l) {
-        int m = (r + l) / 2;
-        BigInteger k = tmp * m;
-        if (k <= current) {
-          t = m;
-          l = m + 1;
-        } else {
-          r = m - 1;
-        }
-      }
-      result[i] = t;
-      current = current - tmp * t;
-    }
-    arr = result;
-    is_negative = (is_negative + num.is_negative) % 2;
+    unsigned_del_of_two_numbers(num);
     remove_zeros();
     return *this;
   }
   BigInteger &operator%=(const BigInteger &num) {
-    if (num == 0) return *this;
-    *this -= (*this / num) * num;
-    remove_zeros();
-    return *this;
+      arr = unsigned_del_of_two_numbers(num);
+      remove_zeros();
+      return *this;
   }
   BigInteger &operator++() {
     return (*this += 1);
@@ -728,19 +273,23 @@ class BigInteger {
     return (*this -= 1);
   }
   BigInteger operator++(int) {
+    BigInteger tmp = *this;
     *this += 1;
-    return *this - 1;
+    return tmp;
   }
   BigInteger operator--(int) {
+    BigInteger tmp = *this;
     *this -= 1;
-    return *this + 1;
+    return tmp;
   }
   explicit operator bool() const {
     if (*this == 0) return false;
     else return true;
   }
-  explicit operator int() {
-    return (!arr.empty() ? arr[0] : 0);
+  explicit operator int() const {
+    string s;
+    for (int i : arr) s += std::to_string(i);
+    return std::stoi(s);
   }
   ~BigInteger() = default;
   friend std::istream &operator>>(std::istream &in, BigInteger &num);
@@ -751,6 +300,9 @@ class BigInteger {
   friend BigInteger operator*(const BigInteger &num1, const BigInteger &num2);
   friend BigInteger operator/(const BigInteger &num1, const BigInteger &num2);
   friend BigInteger operator%(const BigInteger &num1, const BigInteger &num2);
+ private:
+  vector<long long> arr;
+  bool is_negative = false;
 };
 
 bool operator==(const BigInteger &num1, const BigInteger &num2) {
@@ -764,6 +316,7 @@ bool operator==(const BigInteger &num1, const BigInteger &num2) {
 }
 
 std::istream &operator>>(std::istream &in, BigInteger &num) {
+  in.tie(nullptr);
   bool flag = false;
   num.arr.clear();
   char t;
@@ -782,6 +335,7 @@ std::istream &operator>>(std::istream &in, BigInteger &num) {
   return in;
 }
 std::ostream &operator<<(std::ostream &out, const BigInteger &num) {
+  out.tie(nullptr);
   out << num.toString();
   return out;
 }
@@ -813,8 +367,8 @@ BigInteger operator%(const BigInteger &num1, const BigInteger &num2) {
 }
 
 BigInteger gcd(BigInteger num1, BigInteger num2) {
-  if (num1.is_minus()) num1 -= 2 * num1;
-  if (num2.is_minus()) num2 -= 2 * num2;
+  if (num1.is_minus()) num1 = -num1;
+  if (num2.is_minus()) num2 = -num2;
   while (num1 != 0 && num2 != 0) {
     if (num1 > num2) num1 %= num2;
     else num2 %= num1;
@@ -827,18 +381,22 @@ class Rational {
   BigInteger numenator;
   BigInteger denominator;
  public:
-  void irreducible() {
-    BigInteger del = gcd(numenator, denominator);
-    if (del != 0) {
-      numenator /= del;
-      denominator /= del;
-    }
-    else {
+  void reduce() {
+    if (numenator == 0) {
       denominator = 1;
     }
-    if (denominator < 0) {
-      numenator = -numenator;
-      denominator = -denominator;
+    else {
+      BigInteger del = gcd(numenator, denominator);
+      if (del >= 1) {
+        numenator /= del;
+        denominator /= del;
+      } else {
+        denominator = (denominator.is_minus() ? -1 : 1);
+      }
+      if (denominator < 0) {
+        numenator = -numenator;
+        denominator = -denominator;
+      }
     }
   }
   Rational() : numenator(0), denominator(1) {
@@ -847,8 +405,7 @@ class Rational {
     numenator = num;
     denominator = 1;
   }
-  Rational(const BigInteger& num1) {
-    std::cerr << num1 << std::endl;
+  Rational(const BigInteger &num1) {
     numenator = num1;
     denominator = 1;
   }
@@ -876,7 +433,6 @@ class Rational {
   Rational operator-() const {
     Rational tmp = 0;
     tmp -= *this;
-    std::cerr << tmp.toString() << std::endl;
     return tmp;
   }
   [[nodiscard]] string toString() const {
@@ -888,29 +444,29 @@ class Rational {
     }
     return s;
   }
-  Rational& operator=(const Rational& num) = default;
+  Rational &operator=(const Rational &num) = default;
   Rational &operator+=(const Rational &num) {
     numenator = numenator * num.denominator + num.numenator * denominator;
     denominator *= num.denominator;
-    this->irreducible();
+    reduce();
     return *this;
   }
   Rational &operator-=(const Rational &num) {
     numenator = numenator * num.denominator - num.numenator * denominator;
     denominator *= num.denominator;
-    this->irreducible();
+    reduce();
     return *this;
   }
   Rational &operator/=(const Rational &num) {
     numenator *= num.denominator;
     denominator *= num.numenator;
-    this->irreducible();
+    reduce();
     return *this;
   }
   Rational &operator*=(const Rational &num) {
     numenator *= num.numenator;
     denominator *= num.denominator;
-    this->irreducible();
+    reduce();
     return *this;
   }
   [[nodiscard]] string asDecimal(size_t precision = 0) const {
@@ -931,11 +487,10 @@ class Rational {
     return s1;
   }
   explicit operator double() const {
-    string s = this->asDecimal(20);
-    double tmp = std::stof(s);
+    double tmp = std::stod(asDecimal(16));
     return tmp;
   }
-  explicit operator int() {
+  explicit operator int() const {
     return int(numenator);
   }
   ~Rational() = default;
@@ -950,28 +505,50 @@ bool operator==(const Rational &num, const Rational &num1) {
   if (num.numenator == num1.numenator && num.denominator == num1.denominator) return true;
   return false;
 }
-
+std::ostream& operator<<(std::ostream& out, const Rational& num) {
+  out.tie(nullptr);
+  out << num.toString();
+  return out;
+}
+std::istream &operator>>(std::istream &in, Rational &num) {
+  in.tie(nullptr);
+  bool flag = false;
+  char t;
+  in.get(t);
+  while (std::isspace(t)) in.get(t);
+  if (t == '-') {
+    flag = true;
+    in.get(t);
+  }
+  while (!std::isspace(t) && !in.eof()) {
+    num *= 10;
+    num += (t - '0');
+    in.get(t);
+  }
+  if (flag) num *= -1;
+  return in;
+}
 Rational operator+(const Rational &num1, const Rational &num2) {
   Rational tmp = num1;
   tmp += num2;
-  tmp.irreducible();
+  tmp.reduce();
   return tmp;
 }
 Rational operator-(const Rational &num1, const Rational &num2) {
   Rational tmp = num1;
   tmp -= num2;
-  tmp.irreducible();
+  tmp.reduce();
   return tmp;
 }
 Rational operator*(const Rational &num1, const Rational &num2) {
   Rational tmp = num1;
   tmp *= num2;
-  tmp.irreducible();
+  tmp.reduce();
   return tmp;
 }
 Rational operator/(const Rational &num1, const Rational &num2) {
   Rational tmp = num1;
   tmp /= num2;
-  tmp.irreducible();
+  tmp.reduce();
   return tmp;
 }
