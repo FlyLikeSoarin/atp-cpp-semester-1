@@ -1,45 +1,23 @@
-﻿#include <iostream>
+﻿﻿#include <iostream>
 #include <cstring>
 
 class String {
-private:
-	char* str = nullptr;
-	size_t sz;
-	int memory;
-	friend std::ostream& operator<<(std::ostream& out, const String& s);
-	friend std::istream& operator>>(std::istream& stream, String& s);
-	friend String operator+(char c, const String& s);
-
-
-	void more_memory() {
-		String new_one(memory, '0');
-		for (int i = 0; i < sz; ++i)
-			new_one.str[i] = str[i];
-		new_one.sz = sz;
-		new_one.swap(*this);
-	}
-
 
 public:
-	String() : str(new char[5]), sz(0), memory(5) {}
-	String(size_t n, char c = '\0') : str(new char[2 * n]), sz(n), memory(2 * n) {
+	String() : sz(0), str(new char[0]), memory(1) {}
+	String(size_t n, char c) : sz(n), str(new char[n]), memory(n) {
 		memset(str, c, n);
 	}
 
-	String(const char* s) :str(new char[2 * strlen(s)]), sz(strlen(s)), memory(2 * strlen(s)) {
-		for (int i = 0; i < sz; i++) str[i] = s[i];
+	String(const char* s) : sz(strlen(s)), str(new char[strlen(s)]), memory(strlen(s)) {
+		memcpy(str, s, sz);
 	}
 
-	//конструктор копирования
-	String(const String& s) : str(new char[2 * s.sz]), sz(s.sz), memory(2 * s.sz) {
+	String(const String& s) : sz(s.sz), str(new char[s.memory]), memory(s.memory) {
 		memcpy(str, s.str, sz);
 	}
 
-	String(std::initializer_list<char> lst) :str(new char[lst.size()]), sz(lst.size()), memory(lst.size()) {
-		std::copy(lst.begin(), lst.end(), str);
-
-	}
-	String(char l) :str(new char[2]), sz(1), memory(2) {
+	String(char l) : sz(1), str(new char[1]), memory(1) {
 		str[0] = l;
 	}
 
@@ -52,30 +30,28 @@ public:
 		std::swap(sz, s.sz);
 		std::swap(memory, s.memory);
 	}
-	//оператор присваивания
+
 	String& operator=(String s) {
 		swap(s);
 		return *this;
 	}
 
-	const String& operator+=(char addit) {
+	String& operator+=(char addit) {
 		push_back(addit);
 		return *this;
 	}
 
 	bool operator==(const String& s) {
 		if (sz != s.sz) return false;
-		else {
-			for (int i = 0; i < sz; ++i) {
-				if (str[i] != s.str[i]) return false;
-			}
+		for (size_t i = 0; i < sz; ++i) {
+			if (str[i] != s.str[i]) return false;
 		}
 		return true;
 	}
 
 	void push_back(char addit) {
 		if (sz >= memory)
-			more_memory();
+			increase_memory();
 		str[sz] = addit;
 		sz++;
 	}
@@ -88,7 +64,7 @@ public:
 
 	String& operator+=(const String& s) {
 		while (memory <= s.sz + sz)
-			more_memory();
+			increase_memory();
 		for (size_t i = sz; i < sz + s.sz; ++i) {
 			str[i] = s.str[i - sz];
 		}
@@ -128,10 +104,7 @@ public:
 	char operator[](size_t ind) const { return str[ind]; }
 
 	void clear() {
-		delete[] str;
 		sz = 0;
-		memory = 10;
-		str = nullptr;
 	}
 
 	bool empty() {
@@ -164,10 +137,31 @@ public:
 	~String() {
 		delete[] str;
 	}
+
+private:
+	size_t sz;
+	char* str;
+	size_t memory;
+	friend std::ostream& operator<<(std::ostream& out, const String& s);
+	friend std::istream& operator>>(std::istream& in, String& s);
+	friend String operator+(char c, const String& s);
+
+
+	void increase_memory() {
+		char* new_one = new char[memory * 2];
+		memory *= 2;
+		memcpy(new_one, str, sz);
+		//delete[] str;
+		str = new_one;
+	}
 };
 
 String operator+(char l, const String& s) {
 	return String(1, l) + s;
+}
+
+void swap(String& left, String& right) {
+	left.swap(right);
 }
 
 std::ostream& operator<<(std::ostream& out, const String& s) {
@@ -177,11 +171,12 @@ std::ostream& operator<<(std::ostream& out, const String& s) {
 	return out;
 }
 
-std::istream& operator>>(std::istream& stream, String& s) {
-	stream >> s.str;
-	int p = 0;
-	while (s.str[p]) {
-		++p;
+std::istream& operator>>(std::istream& in, String& s) {
+	if (s.sz != 0)
+		s.clear();
+	char c = '1';
+	while (in.get(c) && c != ' ' && !(isspace(c))) {
+		s.push_back(c);
 	}
-	return stream;
+	return in;
 }
