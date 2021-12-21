@@ -1,6 +1,6 @@
 #include <iostream>
 
-int64_t GetProductSum(size_t step, size_t number_of_sequences, size_t *sequence_length, int **sequence);
+int64_t getProductSum(size_t step, size_t number_of_sequences, size_t *sequence_length, int **sequence);
 
 int main(int argc, char** argv) {
   size_t number_of_sequences = static_cast<size_t>(argc-1);
@@ -17,7 +17,7 @@ int main(int argc, char** argv) {
     }
   }
 
-  int64_t product_sum = GetProductSum(0, number_of_sequences, sequence_length, sequence);
+  int64_t product_sum = getProductSum(0, number_of_sequences, sequence_length, sequence);
 
   std::cout << product_sum << '\n';
 
@@ -29,7 +29,7 @@ int main(int argc, char** argv) {
   delete[] sequence_length;
 }
 
-int64_t GetProductSum(size_t step, size_t number_of_sequences, size_t *sequence_length, int **sequence) {
+int64_t getProductSum(size_t step, size_t number_of_sequences, size_t *sequence_length, int **sequence) {
   if (step == number_of_sequences) {
     return 1;
   }
