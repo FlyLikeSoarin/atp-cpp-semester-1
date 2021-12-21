@@ -1,7 +1,3 @@
-//
-// Created by vsvood on 11/18/21.
-//
-
 #include <cmath>
 #include <iostream>
 #include <limits>
@@ -42,7 +38,6 @@ class BigInteger {
   bool is_negative() const;
 
   [[nodiscard]] std::string toString() const;
-  std::string toStringAsFixedPoint(uint64_t precision) const;
 
   explicit operator bool() const;
 
@@ -258,23 +253,20 @@ bool BigInteger::operator<(const BigInteger& other) const {
       big_int_[0] == 0 && other.big_int_[0] == 0) {
     return false;
   }
-  if (is_negative_ > other.is_negative_) {
-    return true;
-  }
-  if (is_negative_ < other.is_negative_) {
+  if (is_negative_ != other.is_negative_) {
+    if (is_negative_) {
+      return true;
+    }
     return false;
-  }
-  if (last_significant_digit_ < other.last_significant_digit_) {
-    return !is_negative_;
-  }
-  if (last_significant_digit_ > other.last_significant_digit_) {
+  } else if (last_significant_digit_ != other.last_significant_digit_) {
+    return (last_significant_digit_ < other.last_significant_digit_) xor is_negative_;
+  } else {
+    for (uint64_t i = last_significant_digit_ + 1; i > 0; --i) {
+      if (big_int_[i - 1] < other.big_int_[i - 1]) return !is_negative_;
+      if (big_int_[i - 1] > other.big_int_[i - 1]) return is_negative_;
+    }
     return is_negative_;
   }
-  for (uint64_t i = last_significant_digit_ + 1; i > 0; --i) {
-    if (big_int_[i - 1] < other.big_int_[i - 1]) return !is_negative_;
-    if (big_int_[i - 1] > other.big_int_[i - 1]) return is_negative_;
-  }
-  return is_negative_;
 }
 
 bool BigInteger::operator>(const BigInteger& other) const {
@@ -368,98 +360,6 @@ std::string BigInteger::toString() const {
   std::stringstream str_stream;
   str_stream << *this;
   return str_stream.str();
-}
-
-std::string BigInteger::toStringAsFixedPoint(uint64_t precision) const {
-  uint64_t number_of_decimal_places =
-      static_cast<uint64_t>(log10(BigInteger::base));
-  uint64_t number_of_additional_digits =
-      (precision + number_of_decimal_places) / number_of_decimal_places;
-  BigInteger copy = *this;
-  if (copy.is_negative()) {
-    copy -= pow(10, number_of_decimal_places - precision % number_of_decimal_places - 1) *
-        5;
-  } else {
-    copy += pow(10, (2 * number_of_decimal_places - precision - 1) %
-        number_of_decimal_places) *
-        5;
-  }
-  std::stringstream result;
-  /*if (is_negative_ && (last_significant_digit_ != 0 || copy.big_int_[0] != 0)) {
-    result << '-';
-  }*/
-  bool is_null = true;
-  if (last_significant_digit_ >= number_of_additional_digits) {
-    result << copy.big_int_[last_significant_digit_];
-    if (copy.big_int_[last_significant_digit_] != 0) {
-      is_null = false;
-    }
-  } else {
-    result << 0;
-  }
-  for (uint64_t i = last_significant_digit_; i > number_of_additional_digits;
-       --i) {
-    for (uint64_t j = (copy.big_int_[i - 1] == 0) ? 0
-                                                  : log10(copy.big_int_[i - 1]);
-         j < 8; ++j) {
-      result << '0';
-    }
-    result << copy.big_int_[i - 1];
-    if (copy.big_int_[i - 1] != 0) {
-      is_null = false;
-    }
-  }
-  if (precision == 0) {
-    if (is_negative_ && !is_null) {
-      return '-' + result.str();
-    }
-    return result.str();
-  }
-
-  result << '.';
-  uint64_t last_pos = 0;
-  for (uint64_t i = number_of_additional_digits - 1;
-       (number_of_additional_digits - i) * number_of_decimal_places <=
-           precision;
-       --i) {
-    if (i >= copy.big_int_.size()) {
-      result << "000000000";
-      continue;
-    }
-    for (uint64_t j = (copy.big_int_[i] == 0) ? 0 : log10(copy.big_int_[i]);
-         j < 8; ++j) {
-      result << '0';
-    }
-    result << copy.big_int_[i];
-    if (copy.big_int_[i] != 0) {
-      is_null = false;
-    }
-    last_pos = i - 1;
-  }
-  precision %= number_of_decimal_places;
-  if (precision == 0)  {
-    if (is_negative_ && !is_null) {
-      return '-' + result.str();
-    }
-    return result.str();
-  }
-
-  uint64_t delimiter = pow(10, number_of_decimal_places - precision);
-  uint32_t last_digit = copy.big_int_[last_pos] / delimiter;
-  for (uint64_t j =
-      (last_digit == 0) ? 0 : log10(last_digit);
-       j < 8-(number_of_decimal_places - precision); ++j) {
-    result << '0';
-  }
-  result << last_digit;
-  if (last_digit != 0) {
-    is_null = false;
-  }
-
-  if (is_negative_ && !is_null) {
-    return '-' + result.str();
-  }
-  return result.str();
 }
 
 BigInteger::operator bool() const {
@@ -660,7 +560,35 @@ std::string Rational::asDecimal(size_t precision) const {
           static_cast<uint64_t>(log10(BigInteger::base));
   BigInteger result =
       (enumerator_ << number_of_additional_digits) / denominator_;
-  std::string decimal = result.toStringAsFixedPoint(precision);
+  BigInteger addition(5);
+  addition*= static_cast<int>(pow(10, 8 - precision % 9));
+  result += addition;
+  size_t result_length = result.babs().toString().length();
+  std::string decimal;
+  if (result_length > static_cast<uint64_t>(log10(BigInteger::base))*number_of_additional_digits) {
+    decimal = result.toString();
+    decimal = decimal.substr(0, decimal.length()-static_cast<uint64_t>(log10(BigInteger::base))*number_of_additional_digits);
+  } else if (result_length > static_cast<uint64_t>(log10(BigInteger::base))*number_of_additional_digits-precision) {
+    decimal = (result.is_negative()) ? "-0" : "0";
+  } else {
+    decimal = "0";
+  }
+  if (precision != 0) {
+    decimal += '.';
+    if (result_length >= static_cast<uint64_t>(log10(BigInteger::base))*number_of_additional_digits) {
+      decimal += result.babs().toString().substr(result_length-static_cast<uint64_t>(log10(BigInteger::base))*number_of_additional_digits, precision);
+    } else if (result_length > static_cast<uint64_t>(log10(BigInteger::base))*number_of_additional_digits-precision) {
+      size_t delta = static_cast<uint64_t>(log10(BigInteger::base))*number_of_additional_digits - result_length;
+      for(size_t i = 0; i < delta; ++i) {
+        decimal += '0';
+      }
+      decimal += result.babs().toString().substr(0, precision-delta);
+    } else {
+      for(size_t i = 0; i < precision; ++i) {
+        decimal += '0';
+      }
+    }
+  }
   return decimal;
 }
 
