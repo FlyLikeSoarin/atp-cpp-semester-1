@@ -75,12 +75,11 @@ BigInteger::BigInteger(int source)
     : is_negative_(source < 0),
       last_significant_digit_(source >= static_cast<int64_t>(base)),
       big_int_{static_cast<unsigned int>(abs(source)) %
-                   static_cast<unsigned int>(base),
+          static_cast<unsigned int>(base),
                static_cast<unsigned int>(abs(source)) /
                    static_cast<unsigned int>(base)} {}
 
 BigInteger& BigInteger::operator+=(const BigInteger& other) {
-  ////////std::cerr << "+=" << *this << ' ' << other << '\n';
   if (is_negative_ != other.is_negative_) {
     is_negative_ = !is_negative_;
     *this -= other;
@@ -92,7 +91,7 @@ BigInteger& BigInteger::operator+=(const BigInteger& other) {
   uint64_t new_last_significant_digit = 0;
   for (uint64_t i = 0; i <= std::max(this->last_significant_digit_,
                                      other.last_significant_digit_) ||
-                       accumulator;
+      accumulator;
        ++i) {
     if (i == this->size()) {
       big_int_.push_back(0);
@@ -124,7 +123,7 @@ BigInteger& BigInteger::operator-=(const BigInteger& other) {
   uint64_t new_last_significant_digit = 0;
   for (uint64_t i = 0; i <= std::max(this->last_significant_digit_,
                                      other_number.last_significant_digit_) ||
-                       accumulator;
+      accumulator;
        ++i) {
     if (i == this->size()) {
       big_int_.push_back(0);
@@ -215,11 +214,9 @@ BigInteger& BigInteger::operator/=(const BigInteger& other) {
 }
 
 BigInteger& BigInteger::operator%=(const BigInteger& other) {
-  // //std::cerr << "% " << *this << ' ' << other << '\n';
   BigInteger quotient = *this;
   (quotient /= other) *= other;
   *this -= quotient;
-  // //std::cerr << *this << "\n\n";
   return *this;
 }
 
@@ -251,7 +248,6 @@ BigInteger BigInteger::operator<<(uint64_t shift) const {
 }
 
 BigInteger BigInteger::operator-() const {
-  ////////std::cerr << "called - for" << *this << '\n';
   BigInteger result = *this;
   result.is_negative_ = !is_negative_;
   return result;
@@ -304,7 +300,6 @@ bool BigInteger::operator!=(const BigInteger& other) const {
 std::istream& operator>>(std::istream& in, BigInteger& number) {
   std::string string_representation;
   in >> string_representation;
-  // ////std::cerr << "in:" << string_representation << '\n';
   number.big_int_.clear();
   number.last_significant_digit_ = 0;
   number.is_negative_ = false;
@@ -334,31 +329,23 @@ std::istream& operator>>(std::istream& in, BigInteger& number) {
     number.last_significant_digit_ = number.big_int_.size() - 1;
   }
 
-  // ////std::cerr << "in:" << number << '\n';
-
   return in;
 }
 
 std::ostream& operator<<(std::ostream& out, const BigInteger& number) {
-  ////////std::cerr << "out:";
   if (number.is_negative_ &&
       (number.last_significant_digit_ != 0 || number.big_int_[0] != 0)) {
-    ////////std::cerr << '-';
     out << '-';
   }
   out << number.big_int_[number.last_significant_digit_];
-  ////////std::cerr << number.big_int_[number.last_significant_digit_];
   for (uint64_t i = number.last_significant_digit_; i > 0; --i) {
     for (uint64_t j =
-             (number.big_int_[i - 1] == 0) ? 0 : log10(number.big_int_[i - 1]);
+        (number.big_int_[i - 1] == 0) ? 0 : log10(number.big_int_[i - 1]);
          j < 8; ++j) {
-      ////////std::cerr << '0';
       out << '0';
     }
-    ////////std::cerr << number.big_int_[i - 1];
     out << number.big_int_[i - 1];
   }
-  ////////std::cerr << '\n';
   return out;
 }
 
@@ -391,11 +378,11 @@ std::string BigInteger::toStringAsFixedPoint(uint64_t precision) const {
   BigInteger copy = *this;
   if (copy.is_negative()) {
     copy -= pow(10, number_of_decimal_places - precision % number_of_decimal_places - 1) *
-            5;
+        5;
   } else {
     copy += pow(10, (2 * number_of_decimal_places - precision - 1) %
-                    number_of_decimal_places) *
-            5;
+        number_of_decimal_places) *
+        5;
   }
   std::stringstream result;
   /*if (is_negative_ && (last_significant_digit_ != 0 || copy.big_int_[0] != 0)) {
@@ -433,7 +420,7 @@ std::string BigInteger::toStringAsFixedPoint(uint64_t precision) const {
   uint64_t last_pos = 0;
   for (uint64_t i = number_of_additional_digits - 1;
        (number_of_additional_digits - i) * number_of_decimal_places <=
-       precision;
+           precision;
        --i) {
     if (i >= copy.big_int_.size()) {
       result << "000000000";
@@ -460,7 +447,7 @@ std::string BigInteger::toStringAsFixedPoint(uint64_t precision) const {
   uint64_t delimiter = pow(10, number_of_decimal_places - precision);
   uint32_t last_digit = copy.big_int_[last_pos] / delimiter;
   for (uint64_t j =
-           (last_digit == 0) ? 0 : log10(last_digit);
+      (last_digit == 0) ? 0 : log10(last_digit);
        j < 8-(number_of_decimal_places - precision); ++j) {
     result << '0';
   }
@@ -519,9 +506,6 @@ BigInteger operator%(const BigInteger& first, const BigInteger& second) {
   return remainder;
 }
 
-////////////////////////////////////////deadline////////////////////////////////////////////
-/// FixMe
-
 class Rational {
  public:
   Rational();
@@ -555,7 +539,7 @@ class Rational {
   explicit operator double() const;
 
  private:
-  void Reduce();
+  void reduce();
   static BigInteger bgcd(const BigInteger& first, const BigInteger& second);
 
   BigInteger enumerator_;
@@ -576,70 +560,58 @@ Rational::Rational(const BigInteger& source)
     : enumerator_(source), denominator_(1) {}
 
 Rational& Rational::operator+=(const Rational& other) {
-  //std::cerr << "+= " << this->toString() << ' ' << other.toString() << '\n';
   enumerator_ *= other.denominator_;
   enumerator_ += other.enumerator_ * denominator_;
   denominator_ *= other.denominator_;
-  //std::cerr << "= " << this->toString() << '\n';
-  Reduce();
-  //std::cerr << "= " << this->toString() << '\n';
+  reduce();
   return *this;
 }
 
 Rational& Rational::operator-=(const Rational& other) {
-  //std::cerr << "-= " << this->toString() << ' ' << other.toString() << '\n';
   enumerator_ *= other.denominator_;
   enumerator_ -= other.enumerator_ * denominator_;
   denominator_ *= other.denominator_;
-  //std::cerr << "= " << this->toString() << '\n';
-  Reduce();
-  //std::cerr << "= " << this->toString() << '\n';
+  reduce();
   return *this;
 }
 
 Rational& Rational::operator*=(const Rational& other) {
-  //std::cerr << "*="  << this->toString() << ' ' << other.toString() << '\n';
   enumerator_ *= other.enumerator_;
   denominator_ *= other.denominator_;
-  //std::cerr << "= " << this->toString() << '\n';
-  Reduce();
-  //std::cerr << "= " << this->toString() << '\n';
+  reduce();
   return *this;
 }
 
 Rational& Rational::operator/=(const Rational& other) {
-  //std::cerr << "/="  << this->toString() << ' ' << other.toString() << '\n';
   enumerator_ *= other.denominator_;
   denominator_ *= other.enumerator_;
-  //std::cerr << "= " << this->toString() << '\n';
-  Reduce();
-  //std::cerr << "= " << this->toString() << '\n';
+  reduce();
   return *this;
 }
 
 Rational& Rational::operator++() {
   enumerator_ += denominator_;
-  Reduce();
+  reduce();
   return *this;
 }
 
 Rational& Rational::operator--() {
   enumerator_ -= denominator_;
-  Reduce();
+  reduce();
   return *this;
 }
 
 Rational Rational::operator++(int) {
   Rational copy = *this;
   enumerator_ += denominator_;
-  Reduce();
+  reduce();
   return copy;
 }
 
 Rational Rational::operator--(int) {
   Rational copy = *this;
   enumerator_ -= denominator_;
-  Reduce();
+  reduce();
   return copy;
 }
 
@@ -666,12 +638,10 @@ bool Rational::operator>=(const Rational& other) const {
 }
 
 bool Rational::operator==(const Rational& other) const {
-  //std::cerr << "==\n";
   return !(*this < other) && !(other < *this);
 }
 
 bool Rational::operator!=(const Rational& other) const {
-  //std::cerr << "!=\n";
   return (*this < other) || (other < *this);
 }
 
@@ -685,10 +655,9 @@ std::string Rational::toString() const {
 }
 
 std::string Rational::asDecimal(size_t precision) const {
-  //std::cerr << "decimal\n";
   uint64_t number_of_additional_digits =
       (precision + static_cast<uint64_t>(log10(BigInteger::base))) /
-      static_cast<uint64_t>(log10(BigInteger::base));
+          static_cast<uint64_t>(log10(BigInteger::base));
   BigInteger result =
       (enumerator_ << number_of_additional_digits) / denominator_;
   std::string decimal = result.toStringAsFixedPoint(precision);
@@ -697,7 +666,7 @@ std::string Rational::asDecimal(size_t precision) const {
 
 Rational::operator double() const { return 0; }
 
-void Rational::Reduce() {
+void Rational::reduce() {
   BigInteger gcd = bgcd(enumerator_, denominator_);
   enumerator_ /= gcd;
   denominator_ /= gcd;
@@ -718,36 +687,30 @@ BigInteger Rational::bgcd(const BigInteger& first, const BigInteger& second) {
 }
 
 Rational& Rational::operator=(const Rational& other) {
-  //std::cerr << "x = " << this->toString() << ' ' << other.toString() << '\n';
   enumerator_ = other.enumerator_;
   denominator_ = other.denominator_;
-  //std::cerr << this->toString();
   return *this;
 }
 
 Rational operator+(const Rational& first, const Rational& second) {
-  //std::cerr << "+\n";
   Rational result = first;
   result += second;
   return result;
 }
 
 Rational operator-(const Rational& first, const Rational& second) {
-  //std::cerr << "-\n";
   Rational result = first;
   result -= second;
   return result;
 }
 
 Rational operator*(const Rational& first, const Rational& second) {
-  //std::cerr << "*\n";
   Rational result = first;
   result *= second;
   return result;
 }
 
 Rational operator/(const Rational& first, const Rational& second) {
-  //std::cerr << "/\n";
   Rational result = first;
   result /= second;
   return result;
