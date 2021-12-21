@@ -70,7 +70,7 @@ BigInteger::BigInteger(int source)
     : is_negative_(source < 0),
       last_significant_digit_(source >= static_cast<int64_t>(base)),
       big_int_{static_cast<unsigned int>(abs(source)) %
-          static_cast<unsigned int>(base),
+                   static_cast<unsigned int>(base),
                static_cast<unsigned int>(abs(source)) /
                    static_cast<unsigned int>(base)} {}
 
@@ -86,7 +86,7 @@ BigInteger& BigInteger::operator+=(const BigInteger& other) {
   uint64_t new_last_significant_digit = 0;
   for (uint64_t i = 0; i <= std::max(this->last_significant_digit_,
                                      other.last_significant_digit_) ||
-      accumulator;
+                       accumulator;
        ++i) {
     if (i == this->size()) {
       big_int_.push_back(0);
@@ -118,7 +118,7 @@ BigInteger& BigInteger::operator-=(const BigInteger& other) {
   uint64_t new_last_significant_digit = 0;
   for (uint64_t i = 0; i <= std::max(this->last_significant_digit_,
                                      other_number.last_significant_digit_) ||
-      accumulator;
+                       accumulator;
        ++i) {
     if (i == this->size()) {
       big_int_.push_back(0);
@@ -184,7 +184,8 @@ BigInteger& BigInteger::operator/=(const BigInteger& other) {
   bool last_digit_processed = false;
   while (!last_digit_processed) {
     partial_dividend *= base;
-    partial_dividend += static_cast<int>(old.big_int_[old.last_significant_digit_]);
+    partial_dividend +=
+        static_cast<int>(old.big_int_[old.last_significant_digit_]);
     if (old.last_significant_digit_ != 0) {
       --old.last_significant_digit_;
     } else {
@@ -193,14 +194,14 @@ BigInteger& BigInteger::operator/=(const BigInteger& other) {
     int32_t less_quotient = 0;
     int32_t greater_quotient = base;
     while (greater_quotient - less_quotient > 1) {
-      int32_t medium_quotient = (less_quotient + greater_quotient)/2;
-      if (divider*medium_quotient <= partial_dividend) {
+      int32_t medium_quotient = (less_quotient + greater_quotient) / 2;
+      if (divider * medium_quotient <= partial_dividend) {
         less_quotient = medium_quotient;
       } else {
         greater_quotient = medium_quotient;
       }
     }
-    partial_dividend -= divider*less_quotient;
+    partial_dividend -= divider * less_quotient;
     *this *= base;
     *this += less_quotient;
   }
@@ -259,7 +260,8 @@ bool BigInteger::operator<(const BigInteger& other) const {
     }
     return false;
   } else if (last_significant_digit_ != other.last_significant_digit_) {
-    return (last_significant_digit_ < other.last_significant_digit_) xor is_negative_;
+    return (last_significant_digit_ < other.last_significant_digit_) xor
+           is_negative_;
   } else {
     for (uint64_t i = last_significant_digit_ + 1; i > 0; --i) {
       if (big_int_[i - 1] < other.big_int_[i - 1]) return !is_negative_;
@@ -332,7 +334,7 @@ std::ostream& operator<<(std::ostream& out, const BigInteger& number) {
   out << number.big_int_[number.last_significant_digit_];
   for (uint64_t i = number.last_significant_digit_; i > 0; --i) {
     for (uint64_t j =
-        (number.big_int_[i - 1] == 0) ? 0 : log10(number.big_int_[i - 1]);
+             (number.big_int_[i - 1] == 0) ? 0 : log10(number.big_int_[i - 1]);
          j < 8; ++j) {
       out << '0';
     }
@@ -557,34 +559,47 @@ std::string Rational::toString() const {
 std::string Rational::asDecimal(size_t precision) const {
   uint64_t number_of_additional_digits =
       (precision + static_cast<uint64_t>(log10(BigInteger::base))) /
-          static_cast<uint64_t>(log10(BigInteger::base));
+      static_cast<uint64_t>(log10(BigInteger::base));
   BigInteger result =
       (enumerator_ << number_of_additional_digits) / denominator_;
   BigInteger addition(5);
-  addition*= static_cast<int>(pow(10, 8 - precision % 9));
+  addition *= static_cast<int>(pow(10, 8 - precision % 9));
   result += addition;
   size_t result_length = result.babs().toString().length();
   std::string decimal;
-  if (result_length > static_cast<uint64_t>(log10(BigInteger::base))*number_of_additional_digits) {
+  if (result_length > static_cast<uint64_t>(log10(BigInteger::base)) *
+                          number_of_additional_digits) {
     decimal = result.toString();
-    decimal = decimal.substr(0, decimal.length()-static_cast<uint64_t>(log10(BigInteger::base))*number_of_additional_digits);
-  } else if (result_length > static_cast<uint64_t>(log10(BigInteger::base))*number_of_additional_digits-precision) {
+    decimal = decimal.substr(
+        0, decimal.length() - static_cast<uint64_t>(log10(BigInteger::base)) *
+                                  number_of_additional_digits);
+  } else if (result_length > static_cast<uint64_t>(log10(BigInteger::base)) *
+                                     number_of_additional_digits -
+                                 precision) {
     decimal = (result.is_negative()) ? "-0" : "0";
   } else {
     decimal = "0";
   }
   if (precision != 0) {
     decimal += '.';
-    if (result_length >= static_cast<uint64_t>(log10(BigInteger::base))*number_of_additional_digits) {
-      decimal += result.babs().toString().substr(result_length-static_cast<uint64_t>(log10(BigInteger::base))*number_of_additional_digits, precision);
-    } else if (result_length > static_cast<uint64_t>(log10(BigInteger::base))*number_of_additional_digits-precision) {
-      size_t delta = static_cast<uint64_t>(log10(BigInteger::base))*number_of_additional_digits - result_length;
-      for(size_t i = 0; i < delta; ++i) {
+    if (result_length >= static_cast<uint64_t>(log10(BigInteger::base)) *
+                             number_of_additional_digits) {
+      decimal += result.babs().toString().substr(
+          result_length - static_cast<uint64_t>(log10(BigInteger::base)) *
+                              number_of_additional_digits,
+          precision);
+    } else if (result_length > static_cast<uint64_t>(log10(BigInteger::base)) *
+                                       number_of_additional_digits -
+                                   precision) {
+      size_t delta = static_cast<uint64_t>(log10(BigInteger::base)) *
+                         number_of_additional_digits -
+                     result_length;
+      for (size_t i = 0; i < delta; ++i) {
         decimal += '0';
       }
-      decimal += result.babs().toString().substr(0, precision-delta);
+      decimal += result.babs().toString().substr(0, precision - delta);
     } else {
-      for(size_t i = 0; i < precision; ++i) {
+      for (size_t i = 0; i < precision; ++i) {
         decimal += '0';
       }
     }
