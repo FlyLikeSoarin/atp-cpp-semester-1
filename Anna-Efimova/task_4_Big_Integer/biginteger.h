@@ -100,10 +100,7 @@ public:
 		num2.delete_0();
 		if (!num1.num_sign) {
 			if (!num2.num_sign) {
-				if ((-num2) > (-num1)) {
-					return true;
-				}
-				return false;
+				return ((-num2) > (-num1));
 			}
 			return false;
 		}
@@ -114,36 +111,21 @@ public:
 		if (size1 == size2) {
 			for (int i = size2 - 1; i >= 0; --i) {
 				if (num1.number[i] != num2.number[i]) {
-					if (num1.number[i] > num2.number[i]) {
-						return true;
-					}
-					return false;
+					return (num1.number[i] > num2.number[i]);
 				}
 			}
 		}
-		if (size1 > size2) {
-			return true;
-		}
-		return false;
+		return (size1 > size2);
 	}
 
 	bool operator<=(const BigInteger& num) {
-		if (*this > num) {
-			return false;
-		}
-		return true;
+		return !(*this > num);
 	}
 	bool operator<(const BigInteger& num) {
-		if ((*this <= num) && (*this != num)) {
-			return true;
-		}
-		return false;
+		return ((*this <= num) && (*this != num));
 	}
 	bool operator>=(const BigInteger& num) {
-		if (*this < num) {
-			return false;
-		}
-		return true;
+		return !(*this < num);
 	}
 
 	BigInteger& operator+=(const BigInteger& num) {
@@ -190,15 +172,10 @@ public:
 			return *this;
 		}
 		if (new_n.num_sign == false && num_sign == true) {
-			new_n.num_sign = true;
-			*this += new_n;
-			return *this;
+			return *this += -(new_n);
 		}
 		if (new_n.num_sign == true && num_sign == false) {
-			new_n -= *this;
-			new_n.num_sign = false;
-			*this = new_n;
-			return *this;
+			return *this = -(new_n -= *this);
 		}
 		if (this->number.size() >= new_n.number.size()) {
 			this->add_0(this->number.size());
@@ -220,16 +197,9 @@ public:
 				this->delete_0();
 				return *this;
 			}
-			new_n -= *this;
-			*this = new_n;
-			num_sign = !num_sign;
-			return *this;
+			return *this = -(new_n -= *this);
 		}
-		new_n.num_sign = !new_n.num_sign;
-		num_sign = !num_sign;
-		*this -= new_n;
-		num_sign = !num_sign;
-		return *this;
+		return (*this += -(new_n));
 	}
 
 
